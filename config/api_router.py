@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework.routers import DefaultRouter
 from rest_framework.routers import SimpleRouter
 
-from main_project.users.api.views import UserViewSet
+from main_project.apps.users import UserViewSet
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
 
