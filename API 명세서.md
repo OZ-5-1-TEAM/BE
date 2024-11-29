@@ -222,7 +222,7 @@
 ```
 
 ### 3.4 댓글 목록 조회
-- ****Endpoint**: `GET /api/v1/posts/{post_id}/comments`
+- **Endpoint**: `GET /api/v1/posts/{post_id}/comments`
 - **Description**: 특정 게시글의 댓글 목록 조회 (페이지네이션 포함)
 
 | Query Parameter | Type | Required | Description |
@@ -265,7 +265,7 @@
 ```
 
 ### 3.5 댓글 수정
-- ****Endpoint**: `PUT /api/v1/posts/{post_id}/comments/{comment_id}`
+- **Endpoint**: `PUT /api/v1/posts/{post_id}/comments/{comment_id}`
 - **Description**: 특정 댓글 내용 수정
 
 | Request Body | Type | Required | Description |
@@ -293,8 +293,8 @@
 }
 ```
 
-### 3.5 댓글 삭제
-- ****Endpoint**: `DELETE /api/v1/posts/{post_id}/comments/{comment_id}`
+### 3.6 댓글 삭제
+- **Endpoint**: `DELETE /api/v1/posts/{post_id}/comments/{comment_id}`
 - **Description**: 특정 댓글 삭제
 
 **Response**
@@ -303,6 +303,7 @@
 - 204 No Content: 댓글 삭제 성공
 - 403 Forbidden: 삭제 권한 없음
 - 404 Not Found: 해당 댓글 없음
+
   
   
 ## 4. 메시지 (Messages)
