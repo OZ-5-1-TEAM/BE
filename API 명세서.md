@@ -195,7 +195,7 @@
 
 
 ### 3.3 댓글 작성
-- ****Endpoint**: `POST /api/v1/posts/{post_id}/comments`
+- **Endpoint**: `POST /api/v1/posts/{post_id}/comments`
 - **Description**: 특정 게시글에 댓글 작성
 
 | Request Body | Type | Required | Description |
