@@ -193,6 +193,118 @@
 | page | integer | No | 페이지 번호 |
 | size | integer | No | 페이지 크기 |
 
+
+### 3.3 댓글 작성
+- ****Endpoint**: `POST /api/v1/posts/{post_id}/comments`
+- **Description**: 특정 게시글에 댓글 작성
+
+| Request Body | Type | Required | Description |
+|--------------|------|----------|-------------|
+| content | string | Yes | 댓글 내용 |
+
+**Response**
+
+## HTTP Status Code:
+- 201 Created: 댓글 작성 성공
+- 400 Bad Request: 필수 필드 누락 
+
+```json
+{
+    "comment_id": 1,
+    "post_id": 42,
+    "content": "이 글에 공감합니다!",
+    "author": {
+        "id": 10,
+        "nickname": "commenter"
+    },
+    "created_at": "2024-11-29T12:00:00Z"
+}
+```
+
+### 3.4 댓글 목록 조회
+- ****Endpoint**: `GET /api/v1/posts/{post_id}/comments`
+- **Description**: 특정 게시글의 댓글 목록 조회 (페이지네이션 포함)
+
+| Query Parameter | Type | Required | Description |
+|----------------|------|----------|-------------|
+| page | integer | No | 페이지 번호(기본값: 1) |
+| size | integer | No | 페이지 크기(기본값: 10) |
+
+**Response**
+
+## HTTP Status Code:
+- 200 OK: 댓글 조회 성공
+- 404 Not Found: 해당 게시글 또는 댓글 없음
+
+```json
+{
+    "comments": [
+        {
+            "comment_id": 1,
+            "content": "이 글에 공감합니다!",
+            "author": {
+                "id": 10,
+                "nickname": "commenter"
+            },
+            "created_at": "2024-11-29T12:00:00Z"
+        },
+        {
+            "comment_id": 2,
+            "content": "저도 같은 경험을 했습니다.",
+            "author": {
+                "id": 11,
+                "nickname": "user123"
+            },
+            "created_at": "2024-11-29T12:10:00Z"
+        }
+    ],
+    "page": 1,
+    "size": 10,
+    "total": 20
+}
+```
+
+### 3.5 댓글 수정
+- ****Endpoint**: `PUT /api/v1/posts/{post_id}/comments/{comment_id}`
+- **Description**: 특정 댓글 내용 수정
+
+| Request Body | Type | Required | Description |
+|-------------|------|----------|-------------|
+| content | string | Yes | 수정된 댓글 내용 |
+
+**Response**
+
+## HTTP Status Code:
+- 200 OK: 댓글 수정 성공
+- 400 Bad Request: 필수 필드 누락
+- 403 Forbidden: 수정 권한 없음
+- 404 Not Found: 해당 댓글 없음
+
+```json
+{
+    "comment_id": 1,
+    "post_id": 42,
+    "content": "수정된 댓글 내용입니다.",
+    "author": {
+        "id": 10,
+        "nickname": "commenter"
+    },
+    "updated_at": "2024-11-29T12:30:00Z"
+}
+```
+
+### 3.5 댓글 삭제
+- ****Endpoint**: `DELETE /api/v1/posts/{post_id}/comments/{comment_id}`
+- **Description**: 특정 댓글 삭제
+
+**Response**
+
+## HTTP Status Code:
+- 204 No Content: 댓글 삭제 성공
+- 403 Forbidden: 삭제 권한 없음
+- 404 Not Found: 해당 댓글 없음
+  
+  
 ## 4. 메시지 (Messages)
 
 ### 4.1 쪽지 보내기
