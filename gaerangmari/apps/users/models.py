@@ -1,6 +1,7 @@
 from core.models import TimeStampedModel
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator
+from django.core.validators import MaxLengthValidator
 from django.db import models
 
 
@@ -83,7 +84,8 @@ class UserProfile(TimeStampedModel):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     bio = models.TextField(
-        max_length=500, blank=True, help_text="자기소개를 500자 이내로 작성하세요."
+        max_length=500, blank=True, help_text="자기소개를 500자 이내로 작성하세요.",
+        validators=[MaxLengthValidator(500)]
     )
 
     class Meta:

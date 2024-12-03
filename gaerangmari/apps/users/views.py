@@ -5,6 +5,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.crypto import get_random_string
+
+def generate_temp_password(length=12):
+    return get_random_string(length=length)
+
 
 from .models import UserProfile
 from .serializers import (
@@ -141,7 +146,7 @@ class PasswordResetView(APIView):
             user = User.objects.get(email=email)
 
             # 임시 비밀번호 생성 및 이메일 발송 로직
-            temp_password = User.objects.make_random_password()
+            temp_password = generate_temp_password()
             user.set_password(temp_password)
             user.save()
 

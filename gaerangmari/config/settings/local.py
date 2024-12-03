@@ -13,3 +13,5 @@ VAPID_PRIVATE_KEY = 'your_vapid_private_key'
 VAPID_ADMIN_EMAIL = 'admin@example.com'
 
 WEATHER_API_KEY="d30378026262bc1c28d337246271fd5d" #테스트용
+
+DEFAULT_FROM_EMAIL="admin@fortest.com"

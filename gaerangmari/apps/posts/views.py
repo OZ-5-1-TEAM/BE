@@ -143,24 +143,22 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class LikeView(APIView):
-    """게시글 좋아요/취소"""
-
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
         post = generics.get_object_or_404(Post, id=post_id, is_deleted=False)
-        like, created = Like.objects.get_or_create(post=post, user=request.user)
-
-        if not created:
+        
+        try:
+            like = Like.objects.get(post=post, user=request.user)
             like.delete()
-            post.likes_count = F("likes_count") - 1
+            post.likes_count = max(0, post.likes_count - 1)
             post.save()
             return Response({"is_liked": False, "likes_count": post.likes_count})
-
-        post.likes_count = F("likes_count") + 1
-        post.save()
-        post.refresh_from_db()
-        return Response({"is_liked": True, "likes_count": post.likes_count})
+        except Like.DoesNotExist:
+            Like.objects.create(post=post, user=request.user)
+            post.likes_count += 1
+            post.save()
+            return Response({"is_liked": True, "likes_count": post.likes_count})
 
 
 class ReportView(generics.CreateAPIView):
