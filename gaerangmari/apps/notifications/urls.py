@@ -1,5 +1,4 @@
 from django.urls import path
-
 from . import views
 
 app_name = "notifications"
@@ -26,9 +25,12 @@ urlpatterns = [
         views.NotificationSettingsUpdateView.as_view(),
         name="notification-settings",
     ),
-    path("fcm-token/", views.FCMTokenUpdateView.as_view(), name="fcm-token-update"),
+    path(
+        "web-push/",
+        views.WebPushSubscriptionView.as_view(),
+        name="web-push-subscription",
+    ),
 ]
-
 # 알림 목록 조회 (GET /api/v1/notifications)
 # 단일 알림 읽음 처리 (POST /api/v1/notifications/{notification_id}/read)
 # 전체 알림 읽음 처리 (POST /api/v1/notifications/read-all)

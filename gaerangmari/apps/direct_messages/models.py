@@ -1,4 +1,4 @@
-from time import timezone
+from django.utils import timezone
 
 from core.models import SoftDeleteModel, TimeStampedModel
 from django.conf import settings

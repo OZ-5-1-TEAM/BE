@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .models import WeatherData
+from weathers.models import WeatherData
 
 class WeatherDataModelTest(TestCase):
 

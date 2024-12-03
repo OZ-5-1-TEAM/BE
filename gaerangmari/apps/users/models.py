@@ -8,6 +8,21 @@ class User(AbstractUser):
     """
     사용자 모델
     """
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
 
     email = models.EmailField(unique=True)
     nickname = models.CharField(
@@ -53,6 +68,9 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "사용자"
         verbose_name_plural = "사용자 목록"
+        permissions = [
+            ("can_view_profile", "Can view profile"),
+        ]
 
     def __str__(self):
         return self.nickname

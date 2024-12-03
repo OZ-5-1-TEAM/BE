@@ -21,7 +21,7 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/friends/", include("friends.urls")),
-    path("api/v1/messages/", include("messages.urls")),
+    path("api/v1/messages/", include("direct_messages.urls")),
     path("api/v1/notices/", include("notices.urls")),
     path("api/v1/notifications/", include("notifications.urls")),
     path("api/v1/pets/", include("pets.urls")),
