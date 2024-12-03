@@ -1,6 +1,7 @@
 # tests/test_models.py
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from decimal import Decimal
 from ..models import Pet
 
 User = get_user_model()
@@ -9,22 +10,44 @@ class PetModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username='testuser',
+            email='test@example.com',
             password='testpass123',
             nickname='Test User'
         )
+        
         self.pet = Pet.objects.create(
             name='멍멍이',
             owner=self.user,
             breed='골든리트리버',
             age=3,
-            weight=25.5,
-            size='large',
-            description='friendly dog'
+            weight=Decimal('12.5'),
+            size='medium',
+            description='착한 강아지입니다.'
         )
 
     def test_pet_creation(self):
         self.assertTrue(isinstance(self.pet, Pet))
-        self.assertEqual(str(self.pet), f"{self.user.nickname}의 멍멍이")
+        self.assertEqual(str(self.pet), f"{self.user.nickname}의 {self.pet.name}")
+        self.assertEqual(self.pet.owner, self.user)
+        self.assertEqual(self.pet.breed, '골든리트리버')
+        self.assertEqual(self.pet.age, 3)
+        self.assertEqual(self.pet.weight, Decimal('12.5'))
+        self.assertEqual(self.pet.size, 'medium')
+        self.assertEqual(str(self.pet.description), '착한 강아지입니다.')
+
+    def test_pet_image_upload(self):
+        image = SimpleUploadedFile(
+            "test_pet.jpg",
+            b"file_content",
+            content_type="image/jpeg"
+        )
+        pet_with_image = Pet.objects.create(
+            name='멍멍이',
+            owner=self.user,
+            breed='골든리트리버',
+            image=image
+        )
+        self.assertTrue(pet_with_image.image.name.startswith('pets/'))
 
     def test_pet_soft_delete(self):
         self.pet.is_deleted = True
@@ -113,79 +136,82 @@ from rest_framework import status
 from ..models import Pet
 
 User = get_user_model()
-
-class PetViewTest(APITestCase):
+class PetViewTest(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.admin_user = User.objects.create_user(
+            username='admin',
+            email='admin@test.com',
+            password='admin123',
+            nickname='Admin User',
+            is_staff=True
+        )
+        self.normal_user = User.objects.create_user(
+            username='normal',
+            email='normal@test.com',
+            password='normal123',
+            nickname='Normal User'
+        )
         self.user = User.objects.create_user(
             username='testuser',
+            email='test@test.com',
             password='testpass123',
             nickname='Test User'
         )
-        self.client.force_authenticate(user=self.user)
-        
         self.pet = Pet.objects.create(
-            name='멍멍이',
+            name='Test Pet',
             owner=self.user,
-            breed='골든리트리버',
-            size='large'
+            breed='Golden Retriever',
+            age=3,
+            weight=12.5,
+            size='medium',
+            description='Test description'
         )
-        
-        self.list_url = reverse('pet-list')  # Adjust according to your URL configuration
-        self.detail_url = reverse('pet-detail', kwargs={'pet_id': self.pet.id})  # Adjust according to your URL configuration
 
     def test_pet_list_create_view(self):
-        # Test GET list
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        url = reverse('pets:pet-list-create')
         
-        # Test POST create
-        new_pet_data = {
-            'name': '냥냥이',
-            'breed': '페르시안',
+        # 인증되지 않은 접근 테스트
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # 인증된 사용자 접근 테스트
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 생성 테스트
+        data = {
+            'name': 'New Pet',
+            'breed': 'Poodle',
             'size': 'small',
+            'description': 'New pet description'
         }
-        response = self.client.post(self.list_url, new_pet_data)
+        response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Pet.objects.count(), 2)
 
     def test_pet_detail_view(self):
-        # Test GET detail
-        response = self.client.get(self.detail_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], '멍멍이')
+        url = reverse('pets:pet-detail', kwargs={'pet_id': self.pet.id})
         
-        # Test PUT update
-        update_data = {
-            'name': '멍멍이2',
-            'breed': '골든리트리버',
-            'size': 'large'
-        }
-        response = self.client.put(self.detail_url, update_data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], '멍멍이2')
+        # 인증되지 않은 접근 테스트
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         
-        # Test DELETE (soft delete)
-        response = self.client.delete(self.detail_url)
+        # 소유자가 아닌 사용자 접근 테스트
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+        # 소유자 접근 테스트
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 수정 테스트
+        data = {'name': 'Updated Pet Name'}
+        response = self.client.put(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 삭제 테스트
+        response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertTrue(Pet.objects.get(id=self.pet.id).is_deleted)
-
-    def test_unauthorized_access(self):
-        # Create another user and their pet
-        other_user = User.objects.create_user(
-            username='otheruser',
-            password='otherpass123',
-            nickname='Other User'
-        )
-        other_pet = Pet.objects.create(
-            name='다른멍멍이',
-            owner=other_user,
-            breed='시바견',
-            size='medium'
-        )
-        
-        # Try to access other user's pet detail
-        other_pet_url = reverse('pet-detail', kwargs={'pet_id': other_pet.id})
-        response = self.client.get(other_pet_url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

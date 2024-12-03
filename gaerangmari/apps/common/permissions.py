@@ -9,7 +9,7 @@ class IsOwner(permissions.BasePermission):
     message = "해당 객체에 대한 권한이 없습니다."
 
     def has_object_permission(self, request, view, obj):
-        return hasattr(obj, "user") and obj.user == request.user
+        return hasattr(obj, "owner") and obj.owner == request.user
 
 
 class IsAdmin(permissions.BasePermission):

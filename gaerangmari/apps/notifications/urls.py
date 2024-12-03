@@ -31,9 +31,11 @@ urlpatterns = [
         name="web-push-subscription",
     ),
 ]
+
 # 알림 목록 조회 (GET /api/v1/notifications)
 # 단일 알림 읽음 처리 (POST /api/v1/notifications/{notification_id}/read)
 # 전체 알림 읽음 처리 (POST /api/v1/notifications/read-all)
 # 알림 대량 삭제 (POST /api/v1/notifications/delete)
 # 알림 설정 업데이트 (PATCH /api/v1/notifications/settings)
-# FCM 토큰 등록/업데이트 (POST /api/v1/notifications/fcm-token)
+# 웹 푸시 구독 등록 (POST /api/v1/notifications/web-push)
+# 웹 푸시 구독 취소 (DELETE /api/v1/notifications/web-push)

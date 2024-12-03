@@ -11,11 +11,13 @@ class NotificationModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username='testuser',
+            email='testuser@test.com',
             password='testpass123',
             nickname='Test User'
         )
         self.sender = User.objects.create_user(
             username='sender',
+            email='sender@test.com',
             password='sender123',
             nickname='Sender User'
         )
@@ -72,11 +74,13 @@ class NotificationSerializerTest(TestCase):
         self.user = User.objects.create_user(
             username='testuser',
             password='testpass123',
+            email='testuser@test.com',
             nickname='Test User'
         )
         self.sender = User.objects.create_user(
             username='sender',
             password='sender123',
+            email='sender@test.com',
             nickname='Sender User'
         )
         self.notification = Notification.objects.create(
@@ -95,8 +99,25 @@ class NotificationSerializerTest(TestCase):
         self.assertEqual(data['sender_profile']['nickname'], self.sender.nickname)
 
     def test_notification_list_serializer(self):
-        self.notification.object_id = 1
-        self.notification.save()
+        from direct_messages.models import Message
+
+        message = Message.objects.create(
+        sender=self.sender,
+        receiver=self.user,
+        content='Test Message'
+        )
+
+        # ContentType과 object_id 설정하여 알림 생성
+        self.notification = Notification.objects.create(
+        recipient=self.user,
+        sender=self.sender,
+        notification_type='message',
+        title='Test Notification',
+        message='Test Message',
+        content_type=ContentType.objects.get_for_model(Message),
+        object_id=message.id
+        )
+
         serializer = NotificationListSerializer(instance=self.notification)
         data = serializer.data
         self.assertEqual(data['reference_url'], '/messages/1')
@@ -126,6 +147,7 @@ class NotificationViewTest(APITestCase):
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='testuser',
+            email='testuser@test.com',
             password='testpass123',
             nickname='Test User',
             push_enabled=True
@@ -167,6 +189,7 @@ class WebPushSubscriptionViewTest(APITestCase):
         self.client = APIClient()
         self.user = User.objects.create_user(
             username='testuser',
+            email='testuser@test.com',
             password='testpass123',
             nickname='Test User'
         )
