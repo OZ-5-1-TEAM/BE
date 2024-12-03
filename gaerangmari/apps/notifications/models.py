@@ -87,3 +87,30 @@ class NotificationTemplate(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_notification_type_display()} 알림 템플릿"
+
+
+class WebPushSubscription(TimeStampedModel):
+    """
+    웹 푸시 구독 정보 모델
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,
+        related_name='push_subscriptions'
+    )
+    endpoint = models.URLField(max_length=500)
+    p256dh = models.CharField(max_length=255)  # Public key
+    auth = models.CharField(max_length=255)    # Auth secret
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "웹 푸시 구독"
+        verbose_name_plural = "웹 푸시 구독 목록"
+        unique_together = ['user', 'endpoint']
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['endpoint']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.nickname}의 웹 푸시 구독"

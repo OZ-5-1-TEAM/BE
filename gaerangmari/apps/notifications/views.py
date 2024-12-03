@@ -5,14 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Notification
+from .models import Notification, WebPushSubscription
 from .serializers import (
-    FCMTokenSerializer,
     NotificationBulkDeleteSerializer,
     NotificationListSerializer,
-    NotificationSerializer,
     NotificationSettingsUpdateSerializer,
     NotificationUpdateSerializer,
+    WebPushSubscriptionSerializer,
 )
 
 
@@ -102,16 +101,43 @@ class NotificationSettingsUpdateView(APIView):
         return Response(serializer.validated_data)
 
 
-class FCMTokenUpdateView(APIView):
-    """FCM 토큰 등록/업데이트"""
-
+class WebPushSubscriptionView(APIView):
+    """웹 푸시 구독 관리"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = FCMTokenSerializer(data=request.data)
+        """구독 정보 등록/업데이트"""
+        serializer = WebPushSubscriptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # FCM 토큰 저장 로직 구현 필요
-        # (FCM 토큰 모델이 별도로 필요할 수 있음)
+        subscription, created = WebPushSubscription.objects.get_or_create(
+            user=request.user,
+            endpoint=serializer.validated_data['endpoint'],
+            defaults={
+                'p256dh': serializer.validated_data['keys']['p256dh'],
+                'auth': serializer.validated_data['keys']['auth']
+            }
+        )
 
-        return Response({"message": "FCM 토큰이 등록되었습니다."})
+        if not created:
+            # 기존 구독 정보 업데이트
+            subscription.p256dh = serializer.validated_data['keys']['p256dh']
+            subscription.auth = serializer.validated_data['keys']['auth']
+            subscription.is_active = True
+            subscription.save()
+
+        return Response({
+            "message": "웹 푸시 구독이 등록되었습니다.",
+            "subscription_id": subscription.id
+        })
+
+    def delete(self, request):
+        """구독 취소"""
+        endpoint = request.data.get('endpoint')
+        if endpoint:
+            WebPushSubscription.objects.filter(
+                endpoint=endpoint,
+                user=request.user
+            ).update(is_active=False)
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)

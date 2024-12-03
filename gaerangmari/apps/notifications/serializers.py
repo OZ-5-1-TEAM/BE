@@ -1,7 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-
-from .models import Notification, NotificationTemplate
+from .models import Notification, NotificationTemplate, WebPushSubscription
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -137,13 +136,12 @@ class NotificationBulkDeleteSerializer(serializers.Serializer):
         return data
 
 
-class FCMTokenSerializer(serializers.Serializer):
-    """FCM 토큰 등록용 시리얼라이저"""
+class WebPushSubscriptionSerializer(serializers.Serializer):
+    """웹 푸시 구독 정보 시리얼라이저"""
+    endpoint = serializers.URLField(max_length=500)
+    keys = serializers.DictField(child=serializers.CharField())
 
-    token = serializers.CharField(max_length=255)
-    device_type = serializers.ChoiceField(choices=["ios", "android", "web"])
-
-    def validate_token(self, value):
-        if len(value) < 32:
-            raise serializers.ValidationError(_("유효하지 않은 FCM 토큰입니다."))
+    def validate_keys(self, value):
+        if 'p256dh' not in value or 'auth' not in value:
+            raise serializers.ValidationError(_("p256dh와 auth 키가 필요합니다."))
         return value

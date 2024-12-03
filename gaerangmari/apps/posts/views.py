@@ -1,4 +1,4 @@
-from common.permissions import IsOwner
+from common.permissions import IsOwner, IsAdmin
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import generics, status
@@ -86,8 +86,12 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         return PostDetailSerializer
 
     def get_permissions(self):
-        if self.request.method in ["PUT", "PATCH", "DELETE"]:
+        if self.request.method in ["PUT", "PATCH"]:
+            # 수정은 작성자만 가능
             return [IsAuthenticated(), IsOwner()]
+        elif self.request.method == "DELETE":
+            # 삭제는 작성자 또는 관리자 가능
+            return [IsAuthenticated(), IsOwner() | IsAdmin()]
         return [IsAuthenticated()]
 
     def retrieve(self, request, *args, **kwargs):
@@ -121,10 +125,13 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """댓글 상세 조회, 수정, 삭제"""
-
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = "comment_id"
+
+    def get_permissions(self):
+        if self.request.method in ["PUT", "PATCH", "DELETE"]:
+            return [IsAuthenticated(), IsOwner() | IsAdmin()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         return Comment.objects.filter(post_id=self.kwargs["post_id"], is_deleted=False)

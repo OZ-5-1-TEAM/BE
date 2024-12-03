@@ -148,4 +148,3 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-WEATHER_API_KEY="d30378026262bc1c28d337246271fd5d" #테스트용
