@@ -90,18 +90,15 @@ class PasswordService:
         return ''.join(secrets.choice(alphabet) for i in range(length))
 
     @staticmethod
-    def send_temp_password_email(user: Any, temp_password: str) -> None:
-        """임시 비밀번호 이메일 발송"""
+    def send_temp_password_email(user, temp_password):
+        subject = '임시 비밀번호가 발급되었습니다'
+        message = f'임시 비밀번호: {temp_password}\n로그인 후 반드시 비밀번호를 변경해주세요.'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [user.email]
+        
         send_mail(
-            subject="[서비스명] 임시 비밀번호가 발급되었습니다",
-            message=f"""
-안녕하세요, {user.nickname}님
-
-요청하신 임시 비밀번호가 발급되었습니다:
-{temp_password}
-
-보안을 위해 로그인 후 반드시 비밀번호를 변경해주세요.
-            """,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list
         )

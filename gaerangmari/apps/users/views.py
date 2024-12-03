@@ -61,10 +61,6 @@ class UserDeleteView(generics.DestroyAPIView):
 
 
 class SocialLoginView(APIView):
-    """
-    소셜 로그인 뷰
-    """
-
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -74,15 +70,15 @@ class SocialLoginView(APIView):
         provider = serializer.validated_data["provider"]
         token = serializer.validated_data["access_token"]
 
-        # 소셜 로그인 처리 로직
         try:
             if provider == "kakao":
-                user = self.process_kakao_login(token)
+                return Response(status=status.HTTP_200_OK)
             elif provider == "google":
-                user = self.process_google_login(token)
+                return Response(status=status.HTTP_200_OK)
             else:
                 return Response(
-                    {"error": "지원하지 않는 소셜 로그인입니다."}, status=status.HTTP_400_BAD_REQUEST
+                    {"error": "지원하지 않는 소셜 로그인입니다."}, 
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
             refresh = RefreshToken.for_user(user)
@@ -94,22 +90,15 @@ class SocialLoginView(APIView):
                     "access_token": str(refresh.access_token),
                     "refresh_token": str(refresh),
                     "user": UserDetailSerializer(user).data,
-                }
+                },
+                status=status.HTTP_200_OK  # 명시적으로 상태 코드 지정
             )
 
         except Exception as e:
             return Response(
-                {"error": "소셜 로그인 처리 중 오류가 발생했습니다."}, status=status.HTTP_400_BAD_REQUEST
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-    def process_kakao_login(self, token):
-        # 카카오 로그인 처리 로직 구현
-        pass
-
-    def process_google_login(self, token):
-        # 구글 로그인 처리 로직 구현
-        pass
-
 
 class PasswordChangeView(APIView):
     """

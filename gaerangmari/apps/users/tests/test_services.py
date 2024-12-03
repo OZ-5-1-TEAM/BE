@@ -67,16 +67,17 @@ class PasswordServiceTest(TestCase):
         password = PasswordService.generate_temp_password(length=16)
         self.assertEqual(len(password), 16)  # 커스텀 길이 확인
 
-    @patch('django.core.email.send_mail')
+    @patch('django.core.mail.send_mail')
     def test_send_temp_password_email(self, mock_send):
         """임시 비밀번호 이메일 발송 테스트"""
-        mock_send.return_value = 1  # 이메일 발송 성공 시뮬레이션
+        # 테스트 준비
         temp_password = "temp123!@#"
-        PasswordService.send_temp_password_email(self.user, temp_password)
+        
+        # 함수 실행
+        result = PasswordService.send_temp_password_email(self.user, temp_password)
+        
+        # 검증
         mock_send.assert_called_once()
-        mock_send.assert_called_with(
-        subject='임시 비밀번호가 발급되었습니다',
-        message=ANY,  # 메시지 내용은 정확히 검증하지 않음
-        from_email=ANY,
-        recipient_list=[self.user.email]
-    )
+        args, kwargs = mock_send.call_args
+        self.assertEqual(kwargs['subject'], '임시 비밀번호가 발급되었습니다')
+        self.assertEqual(kwargs['recipient_list'], [self.user.email])

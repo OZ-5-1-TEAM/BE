@@ -57,7 +57,7 @@ class AuthenticationTest(APITestCase):
         mock_kakao.return_value = (self.user, False)
         data = {
             "provider": "kakao",
-            "code": "fake_code"  # access_token 대신 code 사용
+            "access_token": "fake_token"  # code 대신 access_token 사용
         }
         response = self.client.post(self.social_login_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -68,7 +68,7 @@ class AuthenticationTest(APITestCase):
         mock_google.return_value = (self.user, False)
         data = {
             "provider": "google",
-            "code": "fake_token"
+            "access_token": "fake_token"
         }
         response = self.client.post(self.social_login_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
