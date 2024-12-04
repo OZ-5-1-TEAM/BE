@@ -482,7 +482,46 @@ Responses:
   404: 구독 없음
 ```
 
-## 8. Weather API
+
+## 8. 고객센터 API
+
+### 1.1 문의하기
+- **Endpoint**: `POST /api/v1/customer-service/inquiries`
+- **Description**: 고객 문의 메일 전송
+- **Request Body**:
+```json
+{
+    "title": "string",     // 필수, 제목
+    "email": "string",     // 필수, 이메일
+    "address": {
+        "district": "string",      // 필수, 구
+        "neighborhood": "string",   // 필수, 동
+        "custom_address": "string" // 선택, 직접 입력 주소
+    },
+    "content": "string"    // 필수, 문의 내용
+}
+```
+- **Response (201 Created)**:
+```json
+{
+    "inquiry_id": 1,
+    "title": "서비스 이용 문의",
+    "email": "user@example.com",
+    "status": "submitted",
+    "created_at": "2024-12-04T15:00:00Z"
+}
+```
+- **Error Response**:
+```json
+{
+    "error": "VALIDATION_ERROR",
+    "message": "필수 입력값이 누락되었습니다",
+    "details": {
+        "title": ["이 필드는 필수입니다."]
+    }
+}
+```
+## 9. Weather API
 
 ### Weather APIs
 #### Get Current Weather
@@ -504,4 +543,110 @@ Responses:
       - walking_score: integer
       - forecast_time: datetime
   404: 날씨 데이터 없음
+```
+
+
+
+
+## 날씨 API 수정용 초안 - 적합한 외부 api 탐색중
+
+### 1.1 현재 날씨 조회
+- **Endpoint**: `GET /api/weather/current`
+- **Description**: 현재 날씨 정보와 산책 추천 정보 조회
+- **Query Parameters**:
+  - district: 구 이름 (필수)
+  - neighborhood: 동 이름 (필수)
+- **Response (200 OK)**:
+```json
+{
+    "location": {
+        "district": "string",
+        "neighborhood": "string"
+    },
+    "current_weather": {
+        "condition": {
+            "code": "string",      // WEATHER_CONDITIONS 코드
+            "name": "string"       // 날씨 상태 한글명
+        },
+        "temperature": "float",    // 온도 (°C)
+        "wind_speed": "float",     // 풍속 (m/s)
+        "fine_dust": {
+            "level": "string",     // FINE_DUST_LEVELS 코드
+            "name": "string",      // 미세먼지 등급 한글명
+            "value": "integer"     // 미세먼지 수치 (μg/m³)
+        },
+        "precipitation": {
+            "amount": "float",     // 강수량 (mm)
+            "probability": "integer", // 강수확률 (%)
+            "type": "string"       // 강수 유형 (비/눈/이슬비)
+        }
+    },
+    "walking_info": {
+        "score": "integer",        // 산책 점수 (0-100)
+        "recommendation": "string", // 산책 추천 메시지
+        "warning": "string"        // 주의사항 (있는 경우)
+    },
+    "forecast_time": "datetime",   // 날씨 데이터 측정 시간
+    "updated_at": "datetime"       // 데이터 갱신 시간
+}
+```
+
+- **Error Response (400 Bad Request)**:
+```json
+{
+    "error": "INVALID_PARAMETERS",
+    "message": "구와 동 정보가 필요합니다"
+}
+```
+
+- **Error Response (404 Not Found)**:
+```json
+{
+    "error": "DATA_NOT_FOUND",
+    "message": "해당 지역의 날씨 정보를 찾을 수 없습니다"
+}
+```
+
+### 1.2 날씨 상태 코드
+```python
+WEATHER_CONDITIONS = {
+    'HEAVY_RAIN': '폭우',
+    'RAIN': '비',
+    'FINE_DUST_BAD': '미세먼지 나쁨',
+    'FINE_DUST_VERY_BAD': '미세먼지 매우 나쁨',
+    'COLD_WAVE': '한파',
+    'HEAT_WAVE': '폭염',
+    'CLEAR': '맑음',
+    'PARTLY_CLOUDY': '구름 조금',
+    'CLOUDY': '흐림',
+    'SNOW': '눈',
+    'DRIZZLE': '이슬비',
+    'DEFAULT': '일반'
+}
+
+FINE_DUST_LEVELS = {
+    'VERY_GOOD': '매우좋음',
+    'GOOD': '좋음',
+    'MODERATE': '보통',
+    'BAD': '나쁨',
+    'VERY_BAD': '매우나쁨'
+}
+```
+
+### 1.3 산책 점수 계산 기준
+```python
+WALKING_SCORE_CRITERIA = {
+    'temperature': {
+        'optimal': (15, 25),   # 최적 온도 범위
+        'acceptable': (10, 30) # 수용 가능 온도 범위
+    },
+    'wind_speed': {
+        'light': 5,           # 약한 바람
+        'strong': 10          # 강한 바람
+    },
+    'precipitation': {
+        'light': 1,           # 약한 강수
+        'heavy': 5            # 강한 강수
+    }
+}
 ```
