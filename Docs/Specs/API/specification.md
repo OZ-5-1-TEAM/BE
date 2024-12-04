@@ -476,8 +476,8 @@
 - **Request Body**:
 ```json
 {
-    "receiver_id": "integer", // 수신자 ID (필수)
-    "content": "string"       // 쪽지 내용 (필수, 최대 500자)
+    "receiver_id": "integer", // 자기 자신에게 전송 불가
+    "content": "string" // 최대 500자
 }
 ```
 
