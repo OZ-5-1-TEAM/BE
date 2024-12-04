@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from .models import UserProfile
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
@@ -50,7 +51,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     """사용자 상세정보 시리얼라이저"""
 
     profile = UserProfileSerializer(required=False)
-
+    profile_image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = User
         fields = (
@@ -109,6 +110,9 @@ class PasswordChangeSerializer(serializers.Serializer):
 
         return data
 
+class EmailVerificationSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    code = serializers.CharField()
 
 class PasswordResetSerializer(serializers.Serializer):
     """비밀번호 재설정 시리얼라이저"""
@@ -119,3 +123,11 @@ class PasswordResetSerializer(serializers.Serializer):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("등록되지 않은 이메일입니다.")
         return value
+
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = UserDetailSerializer(self.user).data
+        return data

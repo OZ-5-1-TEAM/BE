@@ -5,7 +5,8 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from common.pagination import StandardResultsSetPagination
+from common.response import CustomResponse
 from .models import Comment, Like, Post
 from .serializers import (
     CommentSerializer,
@@ -18,17 +19,16 @@ from .serializers import (
 
 
 class PostListCreateView(generics.ListCreateAPIView):
-    """게시글 목록 조회 및 생성"""
-
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return PostCreateSerializer
+        return PostListSerializer
 
     def get_queryset(self):
         queryset = Post.objects.filter(is_deleted=False)
-
-        # 카테고리 필터링
-        category = self.request.query_params.get("category")
-        if category:
-            queryset = queryset.filter(category=category)
 
         # 지역 필터링
         district = self.request.query_params.get("district")
@@ -44,29 +44,32 @@ class PostListCreateView(generics.ListCreateAPIView):
         if dog_size:
             queryset = queryset.filter(dog_size=dog_size)
 
-        # 검색
-        keyword = self.request.query_params.get("keyword")
-        if keyword:
-            queryset = queryset.filter(title__icontains=keyword) | queryset.filter(
-                content__icontains=keyword
-            )
-
         # 정렬
-        sort = self.request.query_params.get("sort", "latest")
+        sort = self.request.query_params.get("sort", "latest")  # 기본값 latest
         if sort == "popular":
             queryset = queryset.order_by("-likes_count", "-created_at")
-        else:
+        else:  # latest
             queryset = queryset.order_by("-created_at")
 
         return queryset
 
-    def get_serializer_class(self):
-        if self.request.method == "POST":
-            return PostCreateSerializer
-        return PostListSerializer
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+        return CustomResponse.success(
+            data=self.get_paginated_response(serializer.data).data
+        )
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return CustomResponse.success(
+            data=serializer.data,
+            message="게시글이 성공적으로 생성되었습니다.",
+            status=201
+        )
 
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):

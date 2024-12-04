@@ -146,10 +146,10 @@ class NotificationViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='testuser',
-            email='testuser@test.com',
+            username='testuser2',
+            email='testuser2@test.com',
             password='testpass123',
-            nickname='Test User',
+            nickname='Test User2',
             push_enabled=True
         )
         self.client.force_authenticate(user=self.user)
@@ -169,7 +169,7 @@ class NotificationViewTest(APITestCase):
         url = reverse('notifications:notification-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data['results']), 3)
 
     def test_notification_mark_read_view(self):
         url = reverse('notifications:notification-read', kwargs={'notification_id': self.notifications[0].id})

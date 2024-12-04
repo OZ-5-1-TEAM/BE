@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from .models import WeatherData
 from .services import WeatherService
 from .serializers import WeatherDataSerializer
+from common.response import CustomResponse
 
 class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = WeatherData.objects.all()

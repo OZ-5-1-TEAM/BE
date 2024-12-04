@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator
 from django.core.validators import MaxLengthValidator
 from django.db import models
-
+from django.utils import timezone
 
 class User(AbstractUser):
     """
@@ -45,6 +45,7 @@ class User(AbstractUser):
     status_changed_at = models.DateTimeField(null=True, blank=True)
     status_reason = models.TextField(null=True, blank=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
+
 
     # 소셜 로그인 관련 필드
     is_social = models.BooleanField(default=False)
@@ -94,3 +95,13 @@ class UserProfile(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.nickname}의 프로필"
+    
+class EmailVerification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_verified = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at

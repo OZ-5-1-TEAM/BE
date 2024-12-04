@@ -4,7 +4,8 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from common.pagination import StandardResultsSetPagination
+from common.response import CustomResponse
 from .models import Notice, NoticeRead
 from .serializers import (
     NoticeCreateSerializer,
@@ -17,6 +18,7 @@ from .serializers import (
 class NoticeListView(generics.ListAPIView):
     """공지사항 목록 조회"""
 
+    pagination_class = StandardResultsSetPagination
     serializer_class = NoticeListSerializer
     permission_classes = [AllowAny]
 

@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import views
 
@@ -18,6 +19,10 @@ urlpatterns = [
         views.NotificationSettingsView.as_view(),
         name="notification-settings",
     ),
+    path("verify-email/", views.EmailVerificationView.as_view(), name="verify-email"),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 # 회원가입 (POST /api/v1/users/signup)

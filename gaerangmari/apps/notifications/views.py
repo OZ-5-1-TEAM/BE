@@ -4,7 +4,8 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from common.pagination import StandardResultsSetPagination
+from common.response import CustomResponse
 from .models import Notification, WebPushSubscription
 from .serializers import (
     NotificationBulkDeleteSerializer,
@@ -17,7 +18,7 @@ from .serializers import (
 
 class NotificationListView(generics.ListAPIView):
     """알림 목록 조회"""
-
+    pagination_class = StandardResultsSetPagination
     serializer_class = NotificationListSerializer
     permission_classes = [IsAuthenticated]
 
@@ -106,30 +107,33 @@ class WebPushSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """구독 정보 등록/업데이트"""
-        serializer = WebPushSubscriptionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            """구독 정보 등록/업데이트"""
+            serializer = WebPushSubscriptionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        subscription, created = WebPushSubscription.objects.get_or_create(
-            user=request.user,
-            endpoint=serializer.validated_data['endpoint'],
-            defaults={
-                'p256dh': serializer.validated_data['keys']['p256dh'],
-                'auth': serializer.validated_data['keys']['auth']
-            }
-        )
+            subscription, created = WebPushSubscription.objects.get_or_create(
+                user=request.user,
+                endpoint=serializer.validated_data['endpoint'],
+                defaults={
+                    'p256dh': serializer.validated_data['keys']['p256dh'],
+                    'auth': serializer.validated_data['keys']['auth']
+                }
+            )
 
-        if not created:
-            # 기존 구독 정보 업데이트
-            subscription.p256dh = serializer.validated_data['keys']['p256dh']
-            subscription.auth = serializer.validated_data['keys']['auth']
-            subscription.is_active = True
-            subscription.save()
+            if not created:
+                # 기존 구독 정보 업데이트
+                subscription.p256dh = serializer.validated_data['keys']['p256dh']
+                subscription.auth = serializer.validated_data['keys']['auth']
+                subscription.is_active = True
+                subscription.save()
 
-        return Response({
-            "message": "웹 푸시 구독이 등록되었습니다.",
-            "subscription_id": subscription.id
-        })
+            return Response({
+                "message": "웹 푸시 구독이 등록되었습니다.",
+                "subscription_id": subscription.id
+            })
+        except Exception as e:
+            return Exception(message=str(e)) 
 
     def delete(self, request):
         """구독 취소"""

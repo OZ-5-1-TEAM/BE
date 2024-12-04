@@ -38,7 +38,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost", 
+    "127.0.0.1",
+    ".ngrok-free.app",  # ngrok 도메인 허용
+]
 
 
 # Application definition
@@ -51,6 +55,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework_simplejwt.token_blacklist",
+    'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     'friends',
     'direct_messages',
@@ -59,7 +65,7 @@ INSTALLED_APPS = [
     'pets',
     'posts',
     'users',
-    'weathers'
+    'weathers',
 ]
 
 MIDDLEWARE = [
@@ -72,6 +78,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -119,6 +134,8 @@ DATABASES = {
     }
 }
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

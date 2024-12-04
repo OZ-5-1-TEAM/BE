@@ -35,11 +35,11 @@ class NoticeViewTest(APITestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data['results']), 1)
         
         # 검색 테스트
         response = self.client.get(f"{url}?search=Test")
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data['results']), 1)
 
     def test_notice_detail_view(self):
         url = reverse('notices:notice-detail', kwargs={'notice_id': self.notice.id})  # notice_id로 수정

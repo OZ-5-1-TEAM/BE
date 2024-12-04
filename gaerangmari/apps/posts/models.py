@@ -20,7 +20,7 @@ class Post(SoftDeleteModel):
             ("notice", "공지사항"),
             ("walk", "산책"),
             ("care", "돌봄"),
-            ("community", "자유게시판"),
+            ("community", "자유게시판"),         #게시판 종류는 나중에 한번 더확인
         ],
     )
     district = models.CharField(max_length=20)  # 구

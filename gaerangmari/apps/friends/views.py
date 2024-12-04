@@ -1,11 +1,12 @@
 from common.permissions import IsRequestReceiver
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from common.pagination import StandardResultsSetPagination
+from common.response import CustomResponse
 from .models import FriendRelation
 from .serializers import (
     FriendDetailSerializer,
@@ -35,7 +36,7 @@ class FriendRequestResponseView(generics.UpdateAPIView):
     def get_queryset(self):
         return FriendRelation.objects.filter(
             to_user=self.request.user, status="pending"
-        )
+        ).order_by('-created_at')
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -48,7 +49,7 @@ class FriendRequestResponseView(generics.UpdateAPIView):
 
 class FriendListView(generics.ListAPIView):
     """친구 목록 조회"""
-
+    pagination_class = StandardResultsSetPagination
     serializer_class = FriendListSerializer
     permission_classes = [IsAuthenticated]
 
@@ -58,13 +59,13 @@ class FriendListView(generics.ListAPIView):
 
         queryset = FriendRelation.objects.filter(
             Q(from_user=user) | Q(to_user=user), status="accepted"
-        ).select_related("from_user", "to_user")
+        ).select_related("from_user", "to_user").order_by('-created_at')
 
         if search:
             queryset = queryset.filter(
                 Q(from_user__nickname__icontains=search)
                 | Q(to_user__nickname__icontains=search)
-            )
+            ).order_by('-created_at')
 
         return queryset
 
@@ -80,13 +81,11 @@ class FriendDetailView(generics.RetrieveDestroyAPIView):
         user = self.request.user
         return FriendRelation.objects.filter(
             Q(from_user=user) | Q(to_user=user), status="accepted"
-        )
+        ).order_by('-created_at')
 
     def perform_destroy(self, instance):
         if instance.status != "accepted":
-            return Response(
-                {"detail": "수락된 친구 관계만 삭제할 수 있습니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise serializers.ValidationError("수락된 친구 관계만 삭제할 수 있습니다.")
         instance.status = "rejected"
         instance.save()
 
@@ -100,7 +99,7 @@ class PendingRequestListView(generics.ListAPIView):
     def get_queryset(self):
         return FriendRelation.objects.filter(
             to_user=self.request.user, status="pending"
-        ).select_related("from_user")
+        ).select_related("from_user").order_by('-created_at')
 
 
 class SentRequestListView(generics.ListAPIView):
@@ -111,5 +110,6 @@ class SentRequestListView(generics.ListAPIView):
 
     def get_queryset(self):
         return FriendRelation.objects.filter(
-            from_user=self.request.user, status="pending"
-        ).select_related("to_user")
+            from_user=self.request.user, 
+            status="pending"
+        ).select_related("to_user").order_by('-created_at')
