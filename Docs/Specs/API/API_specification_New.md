@@ -4,22 +4,82 @@
 
 ## 1. Users API
 
-### User Authentication APIs
+### User Authentication APIs //부분수정함
 #### User Signup
 ```yaml
 POST /api/users/signup/
 Description: 사용자 회원가입
+//새로 추가함
 Request Body:
-  - email: string (required)
-  - password: string (required)
-  - password_confirm: string (required)
-  - nickname: string (required)
+  {
+    "email": "string",               // 필수, 이메일
+    "password": "string",            // 필수, 비밀번호
+    "confirm_password": "string",    // 필수, 비밀번호 확인
+    "nickname": "string",            // 필수, 닉네임
+    "district": "string",            // 필수, 구
+    "neighborhood": "string"         // 필수, 동
+}
+
 Responses:
   201: 회원가입 성공
   400: 잘못된 요청
+  409: 충돌  //새로추가함
+{
+    "error": "DUPLICATE_VALUE",
+    "message": "이메일 또는 닉네임이 이미 사용 중입니다."
+}
+
 ```
 
-#### User Detail
+### 이메일 중복 확인 //새로추가함
+```yaml
+엔드포인트: POST /api/v1/auth/check-email/
+설명: 이메일 중복 확인
+
+Request Body:
+{
+    "email": "string"    // 필수, 중복 확인할 이메일
+}
+
+Responses:
+  200 성공:
+    {
+      "available": true    // 이메일 사용 가능 여부
+    }
+
+  400 잘못된 요청:
+    {
+      "error": "VALIDATION_ERROR",
+      "message": "유효한 이메일 형식이 아닙니다."
+    }
+```
+
+### 닉네임 중복 확인 //새로추가함
+```yaml
+엔드포인트: `POST /api/v1/auth/check-nickname/`
+설명: 닉네임 중복 확인
+
+Request Body:
+    {
+      "nickname": "string"    // 필수, 중복 확인할 닉네임
+    }
+
+
+Responses:
+  200 성공:
+    {
+      "available": true    // 닉네임 사용 가능 여부
+    }
+
+  400 잘못된 요청:
+    {
+      "error": "VALIDATION_ERROR",
+      "message": "닉네임은 2~10자 사이여야 합니다."
+    }
+```
+
+
+#### User Detail //부분수정함
 ```yaml
 GET /api/users/me/
 Description: 사용자 상세 정보 조회
@@ -28,12 +88,13 @@ Responses:
     content:
       - email: string
       - nickname: string
-      - profile: object
-        - bio: string
+      - profilePhoto: string // 사용자 프로필 사진 URL
+      - additionalPhoto: string // 추가 사용자 사진 URL
+      - bio : string
   401: 인증되지 않음
 ```
 
-#### Update User Detail
+#### Update User Detail //부분수정함
 ```yaml
 PUT /api/users/me/
 Description: 사용자 정보 수정
@@ -41,8 +102,16 @@ Request Body:
   - nickname: string (optional)
   - district: string (optional)
   - neighborhood: string (optional)
+  - intro: string (optional) // 사용자 자기소개
+  - profilePhoto: file (optional) // 프로필 사진
+  - additionalPhoto: file (optional) // 추가 사진
 Responses:
   200: 수정 성공
+  400: 잘못된 요청:
+    {
+      "error": "INVALID_FILE",
+      "message": "파일 형식은 JPEG 또는 PNG여야 하며, 크기는 5MB 이하이어야 합니다."
+    }
   401: 인증되지 않음
 ```
 
@@ -85,24 +154,7 @@ Responses:
 ## 2. Pets API
 
 ### Pet APIs
-#### Create Pet
-```yaml
-POST /api/pets/
-Description: 새로운 반려동물 등록
-Request Body:
-  - name: string (required)
-  - breed: string (required)
-  - age: integer (optional)
-  - weight: float (optional)
-  - size: string (optional)
-  - description: string (optional)
-  - image: file (optional)
-Responses:
-  201: 반려동물 생성 성공
-  400: 잘못된 요청
-```
-
-#### Get Pet List
+#### Create Pet //부분수정함
 ```yaml
 GET /api/pets/
 Description: 사용자의 반려동물 목록 조회
@@ -116,7 +168,9 @@ Responses:
       - weight: float
       - size: string
       - description: string
-      - image_url: string
+      - gender: string // 반려동물 성별
+      - photo: string // 반려동물 사진 URL
+      - additionalPhoto: string // 추가 사진 URL
 ```
 
 #### Get Pet Detail
@@ -128,7 +182,7 @@ Responses:
   404: 반려동물 없음
 ```
 
-#### Update Pet
+#### Update Pet  //부분수정함
 ```yaml
 PUT /api/pets/{pet_id}/
 Description: 반려동물 정보 수정
@@ -139,8 +193,12 @@ Request Body:
   - weight: float (optional)
   - size: string (optional)
   - description: string (optional)
+  - gender: string (optional) // 반려동물 성별
+  - photo: file (optional) // 반려동물 사진
+  - additionalPhoto: file (optional) // 추가 사진
 Responses:
   200: 수정 성공
+  400: 잘못된 요청
   404: 반려동물 없음
 ```
 
@@ -220,6 +278,27 @@ Responses:
   404: 게시글 없음
 ```
 
+### 좋아요한 게시물 목록 조회 (추가)
+```yaml
+GET /api/posts/liked/
+Description: 사용자가 좋아요한 게시물 목록 조회
+Responses:
+  200: 상태 변경 성공
+      {
+           "posts": [
+              {
+                  "id": 1,
+                  "category": "string",
+                  "title": "string",
+                  "created_at": "datetime"
+              }
+          ]
+      }
+
+  401: 인증되지 않음
+  404: 게시물 없음
+```
+
 #### Toggle Like
 ```yaml
 POST /api/posts/{post_id}/like/
@@ -266,7 +345,9 @@ Request Body:
   - content: string (required, max_length=500) - 메시지 내용
 Responses:
   201: 메시지 생성 성공
-  400: 잘못된 요청 (자기 자신에게 메시지 전송 불가)
+  400: 잘못된 요청 (예: 수신자 ID 없음, 메시지 내용이 비어 있음) //수정완료
+  401: 인증 실패 (로그인 필요) //수정완료
+  500: 서버 에러 //수정완료
 ```
 
 #### Get Message List
@@ -278,8 +359,8 @@ Responses:
     content:
       - id: integer
       - content: string
-      - sender_nickname: string
-      - receiver_nickname: string
+      - sender.nickname: string  // _을 .으로 수정
+      - receiver.nickname: string // _을 .으로 수정
       - created_at: datetime
       - is_read: boolean
 ```
@@ -318,7 +399,7 @@ Responses:
   404: 메시지 없음
 ```
 
-#### Bulk Delete Messages
+#### Bulk Delete Messages   //싹 삭제 불필요
 ```yaml
 POST /api/messages/bulk-delete/
 Description: 여러 메시지 삭제
@@ -365,6 +446,17 @@ Responses:
         - id: integer
         - nickname: string
       - status: string
+```
+
+#### Delete Friend  //새로추가함 (참고 : 쪽지 버튼 누르면 모달창 생성 후 입력 후 답장 전송 가능)
+```yaml
+PUT /api/friends/{friend_id}/
+Description: 친구 삭제
+Request Body:
+  - status: string (required) - 'rejected'
+Responses:
+  200: 친구 삭제 성공
+  404: 친구 없음
 ```
 
 ### 6. Notices API
@@ -484,7 +576,8 @@ Responses:
 
 
 ## 8. 고객센터 API
-
+// 선택, 직접 입력 주소 삭제 <br/>
+// (참고 이메일의 경우 : 아이디만 입력 + 도메인 선택(없을 시 직접입력))
 ### 1.1 문의하기
 - **Endpoint**: `POST /api/v1/customer-service/inquiries`
 - **Description**: 고객 문의 메일 전송
@@ -522,7 +615,11 @@ Responses:
 }
 ```
 ## 9. Weather API
-
+//location은 서울로 고정 <br/>
+//강수량 삭제 <br/>
+//산책점수 관련 항목 삭제 <br/>
+//날씨 데이터 측정시간 삭제 <br/>
+//데이터 갱신 시간 삭제 <br/>
 ### Weather APIs
 #### Get Current Weather
 ```yaml
@@ -650,3 +747,21 @@ WALKING_SCORE_CRITERIA = {
     }
 }
 ```
+
+
+---
+
+### 파일 업로드 관련 주의사항
+- 모든 업로드된 파일은 다음 조건을 만족해야 합니다:
+    - 최대 크기: 5MB
+    - 허용 형식: JPEG, PNG
+- 잘못된 파일 형식 또는 크기 초과 시:
+    ```
+    {
+        "error": "INVALID_FILE",
+        "message": "파일 형식은 JPEG 또는 PNG여야 하며, 크기는 5MB 이하이어야 합니다."
+    }
+    
+    ```
+    
+---
