@@ -4,6 +4,14 @@ from rest_framework import serializers
 from .models import Comment, Like, Post, PostImage, Report
 
 
+class CommentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ('content', 'parent')
+        extra_kwargs = {
+            'parent': {'required': False, 'allow_null': True}
+        }
+
 class PostImageSerializer(serializers.ModelSerializer):
     """게시글 이미지 시리얼라이저"""
 

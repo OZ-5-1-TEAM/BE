@@ -34,5 +34,5 @@ urlpatterns = [
     path("api/v1/posts/", include("posts.urls")),
     path("api/v1/users/", include("users.urls")),
     path("api/v1/weathers/", include("weathers.urls")),
-    path("api/v1/customer_service", include("customer_services.url"))
+    path("api/v1/customer-services/", include('customer_services.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
