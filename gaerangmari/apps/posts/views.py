@@ -5,11 +5,12 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 from common.pagination import StandardResultsSetPagination
 from common.response import CustomResponse
 from .models import Comment, Like, Post
 from .serializers import (
-    CommentSerializer,
+    CommentCreateSerializer,
     PostCreateSerializer,
     PostDetailSerializer,
     PostListSerializer,
@@ -28,147 +29,127 @@ class PostListCreateView(generics.ListCreateAPIView):
         return PostListSerializer
 
     def get_queryset(self):
-        queryset = Post.objects.filter(is_deleted=False)
-
-        # 지역 필터링
-        district = self.request.query_params.get("district")
-        if district:
-            queryset = queryset.filter(district=district)
-
-        neighborhood = self.request.query_params.get("neighborhood")
-        if neighborhood:
-            queryset = queryset.filter(neighborhood=neighborhood)
-
-        # 강아지 크기 필터링
-        dog_size = self.request.query_params.get("dog_size")
-        if dog_size:
-            queryset = queryset.filter(dog_size=dog_size)
-
-        # 정렬
-        sort = self.request.query_params.get("sort", "latest")  # 기본값 latest
-        if sort == "popular":
-            queryset = queryset.order_by("-likes_count", "-created_at")
-        else:  # latest
-            queryset = queryset.order_by("-created_at")
-
+        queryset = Post.objects.filter(is_deleted=False).order_by('-created_at')
         return queryset
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        return CustomResponse.success(
-            data=self.get_paginated_response(serializer.data).data
-        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return CustomResponse.error(message="잘못된 요청입니다.", status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         return CustomResponse.success(
             data=serializer.data,
-            message="게시글이 성공적으로 생성되었습니다.",
-            status=201
+            status=status.HTTP_201_CREATED
         )
 
 
-class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """게시글 상세 조회, 수정, 삭제"""
-
+class LikedPostListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = PostListSerializer
+
+    def get_queryset(self):
+        return Post.objects.filter(
+            likes__user=self.request.user,
+            is_deleted=False
+        ).order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return CustomResponse.error(message="게시물이 없습니다.", status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return CustomResponse.success(
+            data={"posts": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+class PostDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PostDetailSerializer
     lookup_url_kwarg = "post_id"
 
     def get_queryset(self):
         return Post.objects.filter(is_deleted=False)
 
-    def get_serializer_class(self):
-        if self.request.method == "GET":
-            return PostDetailSerializer
-        elif self.request.method in ["PUT", "PATCH"]:
-            return PostUpdateSerializer
-        return PostDetailSerializer
-
-    def get_permissions(self):
-        if self.request.method in ["PUT", "PATCH"]:
-            # 수정은 작성자만 가능
-            return [IsAuthenticated(), IsOwner()]
-        elif self.request.method == "DELETE":
-            # 삭제는 작성자 또는 관리자 가능
-            return [IsAuthenticated(), IsOwner() | IsAdmin()]
-        return [IsAuthenticated()]
-
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.views = F("views") + 1
-        instance.save()
-        instance.refresh_from_db()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        try:
+            instance = self.get_object()
+            instance.views = F("views") + 1
+            instance.save()
+            instance.refresh_from_db()
+            serializer = self.get_serializer(instance)
+            return CustomResponse.success(
+                data=serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except Post.DoesNotExist:
+            return CustomResponse.error(
+                message="게시글을 찾을 수 없습니다.",
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-    def perform_destroy(self, instance):
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save()
 
-
-class CommentListCreateView(generics.ListCreateAPIView):
-    """댓글 목록 조회 및 생성"""
-
-    serializer_class = CommentSerializer
+class CommentCreateView(generics.CreateAPIView):
+    serializer_class = CommentCreateSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Comment.objects.filter(
-            post_id=self.kwargs["post_id"], parent=None, is_deleted=False
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return CustomResponse.error(
+                message="잘못된 요청입니다.",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        comment = serializer.save(
+            author=request.user,
+            post_id=self.kwargs["post_id"]
         )
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user, post_id=self.kwargs["post_id"])
-
-
-class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """댓글 상세 조회, 수정, 삭제"""
-    serializer_class = CommentSerializer
-    lookup_url_kwarg = "comment_id"
-
-    def get_permissions(self):
-        if self.request.method in ["PUT", "PATCH", "DELETE"]:
-            return [IsAuthenticated(), IsOwner() | IsAdmin()]
-        return [IsAuthenticated()]
-
-    def get_queryset(self):
-        return Comment.objects.filter(post_id=self.kwargs["post_id"], is_deleted=False)
-
-    def perform_destroy(self, instance):
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save()
+        return CustomResponse.success(
+            status=status.HTTP_201_CREATED
+        )
 
 
 class LikeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
-        post = generics.get_object_or_404(Post, id=post_id, is_deleted=False)
+        post = get_object_or_404(Post, id=post_id, is_deleted=False)
         
         try:
             like = Like.objects.get(post=post, user=request.user)
             like.delete()
             post.likes_count = max(0, post.likes_count - 1)
             post.save()
-            return Response({"is_liked": False, "likes_count": post.likes_count})
+            return CustomResponse.success(
+                data={"is_liked": False, "likes_count": post.likes_count},
+                status=status.HTTP_200_OK
+            )
         except Like.DoesNotExist:
             Like.objects.create(post=post, user=request.user)
             post.likes_count += 1
             post.save()
-            return Response({"is_liked": True, "likes_count": post.likes_count})
+            return CustomResponse.success(
+                data={"is_liked": True, "likes_count": post.likes_count},
+                status=status.HTTP_200_OK
+            )
 
 
 class ReportView(generics.CreateAPIView):
-    """게시글/댓글 신고"""
-
     serializer_class = ReportSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(reporter=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return CustomResponse.error(
+                message="잘못된 요청입니다.",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer.save(reporter=request.user)
+        return CustomResponse.success(
+            status=status.HTTP_201_CREATED
+        )

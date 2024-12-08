@@ -615,141 +615,51 @@ Responses:
 }
 ```
 ## 9. Weather API
-//location은 서울로 고정 <br/>
-//강수량 삭제 <br/>
-//산책점수 관련 항목 삭제 <br/>
-//날씨 데이터 측정시간 삭제 <br/>
-//데이터 갱신 시간 삭제 <br/>
-### Weather APIs
-#### Get Current Weather
-```yaml
-GET /api/weather/current/
-Description: 현재 날씨 정보 조회
-Query Parameters:
-  - district: string (required)
-Responses:
-  200:
-    content:
-      - district: string
-      - neighborhood: string
-      - temperature: float
-      - humidity: float
-      - wind_speed: float
-      - precipitation: float
-      - precipitation_type: string
-      - walking_score: integer
-      - forecast_time: datetime
-  404: 날씨 데이터 없음
-```
+# Weather API 문서
 
+## 현재 날씨 조회 API
+현재 서울 지역의 실시간 날씨 정보를 제공합니다.
 
+**Endpoint**: `GET /api/weathers/current/`
 
-
-## 날씨 API 수정용 초안 - 적합한 외부 api 탐색중
-
-### 1.1 현재 날씨 조회
-- **Endpoint**: `GET /api/weather/current`
-- **Description**: 현재 날씨 정보와 산책 추천 정보 조회
-- **Query Parameters**:
-  - district: 구 이름 (필수)
-  - neighborhood: 동 이름 (필수)
-- **Response (200 OK)**:
+### 응답 형식
 ```json
 {
-    "location": {
-        "district": "string",
-        "neighborhood": "string"
-    },
-    "current_weather": {
-        "condition": {
-            "code": "string",      // WEATHER_CONDITIONS 코드
-            "name": "string"       // 날씨 상태 한글명
-        },
-        "temperature": "float",    // 온도 (°C)
-        "wind_speed": "float",     // 풍속 (m/s)
-        "fine_dust": {
-            "level": "string",     // FINE_DUST_LEVELS 코드
-            "name": "string",      // 미세먼지 등급 한글명
-            "value": "integer"     // 미세먼지 수치 (μg/m³)
-        },
-        "precipitation": {
-            "amount": "float",     // 강수량 (mm)
-            "probability": "integer", // 강수확률 (%)
-            "type": "string"       // 강수 유형 (비/눈/이슬비)
-        }
-    },
-    "walking_info": {
-        "score": "integer",        // 산책 점수 (0-100)
-        "recommendation": "string", // 산책 추천 메시지
-        "warning": "string"        // 주의사항 (있는 경우)
-    },
-    "forecast_time": "datetime",   // 날씨 데이터 측정 시간
-    "updated_at": "datetime"       // 데이터 갱신 시간
+    "temperature": 8.81,         // 온도(°C)
+    "humidity": 42,             // 습도(%)
+    "wind_speed": 6.81,         // 풍속(m/s)
+    "precipitation_probability": 0, // 강수확률(%)
+    "weather_code": 1000        // 날씨코드
 }
 ```
 
-- **Error Response (400 Bad Request)**:
+### 날씨 코드 정의
+| 코드 | 설명 |
+|------|------|
+| 1000 | 맑음 |
+| 1001 | 흐림 |
+| 1100 | 대체로 맑음 |
+| 2000 | 안개 |
+| 2100 | 옅은 안개 |
+| 4000 | 이슬비 |
+| 4001 | 비 |
+| 4200 | 강한 비 |
+
+### 에러 응답
 ```json
 {
-    "error": "INVALID_PARAMETERS",
-    "message": "구와 동 정보가 필요합니다"
+    "error": "error message"
 }
 ```
 
-- **Error Response (404 Not Found)**:
-```json
-{
-    "error": "DATA_NOT_FOUND",
-    "message": "해당 지역의 날씨 정보를 찾을 수 없습니다"
-}
-```
+### 응답 코드
+- 200: 성공
+- 500: 서버 에러
 
-### 1.2 날씨 상태 코드
-```python
-WEATHER_CONDITIONS = {
-    'HEAVY_RAIN': '폭우',
-    'RAIN': '비',
-    'FINE_DUST_BAD': '미세먼지 나쁨',
-    'FINE_DUST_VERY_BAD': '미세먼지 매우 나쁨',
-    'COLD_WAVE': '한파',
-    'HEAT_WAVE': '폭염',
-    'CLEAR': '맑음',
-    'PARTLY_CLOUDY': '구름 조금',
-    'CLOUDY': '흐림',
-    'SNOW': '눈',
-    'DRIZZLE': '이슬비',
-    'DEFAULT': '일반'
-}
-
-FINE_DUST_LEVELS = {
-    'VERY_GOOD': '매우좋음',
-    'GOOD': '좋음',
-    'MODERATE': '보통',
-    'BAD': '나쁨',
-    'VERY_BAD': '매우나쁨'
-}
-```
-
-### 1.3 산책 점수 계산 기준
-```python
-WALKING_SCORE_CRITERIA = {
-    'temperature': {
-        'optimal': (15, 25),   # 최적 온도 범위
-        'acceptable': (10, 30) # 수용 가능 온도 범위
-    },
-    'wind_speed': {
-        'light': 5,           # 약한 바람
-        'strong': 10          # 강한 바람
-    },
-    'precipitation': {
-        'light': 1,           # 약한 강수
-        'heavy': 5            # 강한 강수
-    }
-}
-```
-
-
----
+### 참고사항
+- 위치 정보는 서울(위도: 37.5665, 경도: 126.9780)로 고정되어 있습니다
+- 온도는 섭씨 단위로 제공됩니다
+- 풍속은 m/s 단위로 제공됩니다
 
 ### 파일 업로드 관련 주의사항
 - 모든 업로드된 파일은 다음 조건을 만족해야 합니다:

@@ -23,6 +23,8 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('check-email/', views.EmailCheckView.as_view(), name='check-email'),
+    path('check-nickname/', views.NicknameCheckView.as_view(), name='check-nickname'),
 ]
 
 # 회원가입 (POST /api/v1/users/signup)
@@ -32,3 +34,9 @@ urlpatterns = [
 # 비밀번호 변경 (POST /api/v1/users/password/change)
 # 비밀번호 재설정 (POST /api/v1/users/password/reset)
 # 알림 설정 변경 (PUT /api/v1/users/notifications/settings)
+# 이메일 인증 (POST /api/v1/users/verify-email)
+# 로그인 (POST /api/v1/users/login)
+# 로그아웃 (POST /api/v1/users/logout)
+# 토큰 갱신 (POST /api/v1/users/token/refresh)
+# 이메일 중복 확인 (POST /api/v1/users/check-email)
+# 닉네임 중복 확인 (POST /api/v1/users/check-nickname)

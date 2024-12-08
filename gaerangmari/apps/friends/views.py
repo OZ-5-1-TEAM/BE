@@ -25,26 +25,41 @@ class FriendRequestCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(from_user=self.request.user)
 
-
+# FriendRequestResponseView 수정
 class FriendRequestResponseView(generics.UpdateAPIView):
-    """친구 요청 응답"""
-
+    """친구 요청 응답 및 삭제"""
     serializer_class = FriendRequestResponseSerializer
-    permission_classes = [IsAuthenticated, IsRequestReceiver]
-    lookup_url_kwarg = "request_id"
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = "friend_id"  # request_id에서 friend_id로 변경
 
     def get_queryset(self):
         return FriendRelation.objects.filter(
-            to_user=self.request.user, status="pending"
+            Q(to_user=self.request.user) | Q(from_user=self.request.user)
         ).order_by('-created_at')
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.status != "pending":
-            return Response(
-                {"detail": "이미 처리된 요청입니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
-        return super().update(request, *args, **kwargs)
+        status_value = request.data.get('status')
+        
+        # 친구 요청 처리
+        if instance.status == "pending" and status_value in ['accepted', 'rejected']:
+            if instance.to_user != request.user:
+                return Response(
+                    {"detail": "친구 요청을 처리할 권한이 없습니다."}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            return super().update(request, *args, **kwargs)
+            
+        # 친구 삭제 처리
+        elif instance.status == "accepted" and status_value == 'rejected':
+            instance.status = 'rejected'
+            instance.save()
+            return Response({"detail": "친구 삭제 완료"}, status=status.HTTP_200_OK)
+            
+        return Response(
+            {"detail": "잘못된 요청입니다."}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class FriendListView(generics.ListAPIView):
@@ -70,24 +85,6 @@ class FriendListView(generics.ListAPIView):
         return queryset
 
 
-class FriendDetailView(generics.RetrieveDestroyAPIView):
-    """친구 상세 정보 조회 및 삭제"""
-
-    serializer_class = FriendDetailSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_url_kwarg = "friend_id"
-
-    def get_queryset(self):
-        user = self.request.user
-        return FriendRelation.objects.filter(
-            Q(from_user=user) | Q(to_user=user), status="accepted"
-        ).order_by('-created_at')
-
-    def perform_destroy(self, instance):
-        if instance.status != "accepted":
-            raise serializers.ValidationError("수락된 친구 관계만 삭제할 수 있습니다.")
-        instance.status = "rejected"
-        instance.save()
 
 
 class PendingRequestListView(generics.ListAPIView):

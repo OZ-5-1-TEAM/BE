@@ -78,7 +78,6 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         validated_data["from_user"] = self.context["request"].user
         return super().create(validated_data)
 
-
 class FriendRequestResponseSerializer(serializers.ModelSerializer):
     """친구 요청 응답 시리얼라이저"""
 
@@ -95,11 +94,18 @@ class FriendRequestResponseSerializer(serializers.ModelSerializer):
         instance = self.instance
         user = self.context["request"].user
 
-        if instance.to_user != user:
-            raise serializers.ValidationError(_("이 요청에 대한 응답 권한이 없습니다."))
-
-        if instance.status != "pending":
-            raise serializers.ValidationError(_("이미 처리된 요청입니다."))
+        # 친구 요청 처리 시
+        if instance.status == "pending":
+            if instance.to_user != user:
+                raise serializers.ValidationError(_("이 요청에 대한 응답 권한이 없습니다."))
+        
+        # 친구 삭제 시
+        elif instance.status == "accepted" and data.get("status") == "rejected":
+            if instance.from_user != user and instance.to_user != user:
+                raise serializers.ValidationError(_("친구 관계가 아닙니다."))
+        
+        else:
+            raise serializers.ValidationError(_("잘못된 요청입니다."))
 
         return data
 

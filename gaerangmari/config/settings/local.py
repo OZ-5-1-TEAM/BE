@@ -14,11 +14,8 @@ VAPID_ADMIN_EMAIL = 'admin@example.com'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-WEATHER_API_KEY="d30378026262bc1c28d337246271fd5d" #테스트용
-
 DEFAULT_FROM_EMAIL="admin@fortest.com"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.app"  # ngrok https URL을 신뢰할 수 있는 출처로 등록
 ]
-

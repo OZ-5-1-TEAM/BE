@@ -1,12 +1,14 @@
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from common.pagination import StandardResultsSetPagination
 from common.response import CustomResponse
-from .models import Notice, NoticeRead
+from django.http import FileResponse
+from .models import Notice, NoticeRead, NoticeFile
 from .serializers import (
     NoticeCreateSerializer,
     NoticeDetailSerializer,
@@ -22,8 +24,29 @@ class NoticeListView(generics.ListAPIView):
     serializer_class = NoticeListSerializer
     permission_classes = [AllowAny]
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return CustomResponse(
+            message="공지사항 목록을 성공적으로 조회했습니다.",
+            data=serializer.data
+        )
+
     def get_queryset(self):
         queryset = Notice.objects.filter(is_deleted=False)
+        
+        # 현재 시간에 해당하는 공지사항만 표시
+        now = timezone.now()
+        queryset = queryset.filter(
+            (Q(start_date__lte=now) | Q(start_date__isnull=True)) &
+            (Q(end_date__gte=now) | Q(end_date__isnull=True))
+        )
 
         # 상단 고정 공지와 일반 공지 분리하여 정렬
         queryset = queryset.order_by("-is_pinned", "-created_at")
@@ -31,9 +54,16 @@ class NoticeListView(generics.ListAPIView):
         # 검색 기능
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(title__icontains=search) | queryset.filter(
-                content__icontains=search
+            queryset = queryset.filter(
+                Q(title__icontains=search) | 
+                Q(content__icontains=search)
             )
+
+        # 상단고정 필터링
+        is_pinned = self.request.query_params.get("is_pinned")
+        if is_pinned is not None:
+            is_pinned = is_pinned.lower() == "true"
+            queryset = queryset.filter(is_pinned=is_pinned)
 
         return queryset
 
@@ -99,27 +129,30 @@ class NoticeDeleteView(generics.DestroyAPIView):
         instance.deleted_at = timezone.now()
         instance.save()
 
-
 class NoticeFileDownloadView(APIView):
     """공지사항 첨부파일 다운로드"""
 
     permission_classes = [AllowAny]
 
     def get(self, request, notice_id, file_id):
-        from django.http import FileResponse
+        try:
+            notice_file = get_object_or_404(
+                NoticeFile, 
+                id=file_id, 
+                notice_id=notice_id, 
+                notice__is_deleted=False
+            )
 
-        from .models import NoticeFile
+            # 다운로드 카운트 증가
+            notice_file.download_count = F("download_count") + 1
+            notice_file.save()
 
-        notice_file = generics.get_object_or_404(
-            NoticeFile, id=file_id, notice_id=notice_id, notice__is_deleted=False
-        )
-
-        # 다운로드 카운트 증가
-        notice_file.download_count = F("download_count") + 1
-        notice_file.save()
-
-        response = FileResponse(notice_file.file)
-        response[
-            "Content-Disposition"
-        ] = f'attachment; filename="{notice_file.filename}"'
-        return response
+            response = FileResponse(notice_file.file)
+            response["Content-Disposition"] = f'attachment; filename="{notice_file.filename}"'
+            return response
+            
+        except Exception as e:
+            return Response(
+                {"error": "파일을 다운로드할 수 없습니다."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

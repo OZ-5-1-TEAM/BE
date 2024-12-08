@@ -1,29 +1,19 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-
 from .models import Message
 
 
 class MessageSerializer(serializers.ModelSerializer):
     """기본 메시지 시리얼라이저"""
-
-    sender_nickname = serializers.CharField(source="sender.nickname", read_only=True)
-    receiver_nickname = serializers.CharField(
-        source="receiver.nickname", read_only=True
-    )
-    sender_profile = serializers.SerializerMethodField()
-    receiver_profile = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+    receiver = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = (
             "id",
             "sender",
-            "sender_nickname",
-            "sender_profile",
             "receiver",
-            "receiver_nickname",
-            "receiver_profile",
             "content",
             "is_read",
             "read_at",
@@ -31,20 +21,18 @@ class MessageSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("sender", "is_read", "read_at")
 
-    def get_sender_profile(self, obj):
+    def get_sender(self, obj):
         return {
             "id": obj.sender.id,
-            "profile_image": obj.sender.profile_image.url
-            if obj.sender.profile_image
-            else None,
+            "nickname": obj.sender.nickname,
+            "profile_image": obj.sender.profile_image.url if obj.sender.profile_image else None,
         }
 
-    def get_receiver_profile(self, obj):
+    def get_receiver(self, obj):
         return {
             "id": obj.receiver.id,
-            "profile_image": obj.receiver.profile_image.url
-            if obj.receiver.profile_image
-            else None,
+            "nickname": obj.receiver.nickname,
+            "profile_image": obj.receiver.profile_image.url if obj.receiver.profile_image else None,
         }
 
 
@@ -73,28 +61,22 @@ class MessageCreateSerializer(serializers.ModelSerializer):
 
 class MessageListSerializer(serializers.ModelSerializer):
     """메시지 목록 조회용 시리얼라이저"""
-
-    other_user = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+    receiver = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ("id", "other_user", "preview", "is_read", "created_at")
+        fields = ("id", "sender", "receiver", "preview", "content", "is_read", "created_at")
 
-    def get_other_user(self, obj):
-        request = self.context.get("request")
-        if not request:
-            return None
-
-        user = request.user
-        other_user = obj.receiver if obj.sender == user else obj.sender
-
+    def get_sender(self, obj):
         return {
-            "id": other_user.id,
-            "nickname": other_user.nickname,
-            "profile_image": other_user.profile_image.url
-            if other_user.profile_image
-            else None,
+            "nickname": obj.sender.nickname
+        }
+
+    def get_receiver(self, obj):
+        return {
+            "nickname": obj.receiver.nickname
         }
 
     def get_preview(self, obj):
@@ -104,19 +86,15 @@ class MessageListSerializer(serializers.ModelSerializer):
 class ReceivedMessageSerializer(MessageListSerializer):
     """받은 쪽지함용 시리얼라이저"""
 
-    sender_nickname = serializers.CharField(source="sender.nickname")
-
     class Meta(MessageListSerializer.Meta):
-        fields = MessageListSerializer.Meta.fields + ("sender_nickname",)
+        fields = ("id", "sender", "content", "is_read", "created_at")
 
 
 class SentMessageSerializer(MessageListSerializer):
     """보낸 쪽지함용 시리얼라이저"""
 
-    receiver_nickname = serializers.CharField(source="receiver.nickname")
-
     class Meta(MessageListSerializer.Meta):
-        fields = MessageListSerializer.Meta.fields + ("receiver_nickname",)
+        fields = ("id", "receiver", "content", "is_read", "created_at")
 
 
 class MessageDetailSerializer(MessageSerializer):
@@ -143,30 +121,3 @@ class MessageDetailSerializer(MessageSerializer):
             return None
 
         return super().to_representation(instance)
-
-
-class MessageDeleteSerializer(serializers.Serializer):
-    """메시지 삭제용 시리얼라이저"""
-
-    message_ids = serializers.ListField(child=serializers.IntegerField(), min_length=1)
-
-    def validate_message_ids(self, value):
-        user = self.context["request"].user
-        messages = Message.objects.filter(id__in=value)
-
-        # 존재하지 않는 메시지 ID 체크
-        if len(messages) != len(value):
-            raise serializers.ValidationError(_("존재하지 않는 메시지가 포함되어 있습니다."))
-
-        # 권한 체크
-        for message in messages:
-            if message.sender != user and message.receiver != user:
-                raise serializers.ValidationError(_("삭제 권한이 없는 메시지가 포함되어 있습니다."))
-
-            # 이미 삭제된 메시지 체크
-            if (user == message.sender and message.deleted_by_sender) or (
-                user == message.receiver and message.deleted_by_receiver
-            ):
-                raise serializers.ValidationError(_("이미 삭제된 메시지가 포함되어 있습니다."))
-
-        return value

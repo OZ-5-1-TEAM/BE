@@ -25,7 +25,6 @@ from django.utils import timezone
 from users.models import UserProfile
 from pets.models import Pet
 from posts.models import Post, Comment, Like
-from weathers.models import WeatherData, WalkingCondition
 from notifications.models import Notification, NotificationTemplate
 from direct_messages.models import Message
 import random
@@ -144,35 +143,6 @@ def create_posts():
             post.likes_count += 1
         post.save()
 
-def create_weather_data():
-    districts = ['강남구', '서초구', '송파구', '강동구']
-    neighborhoods = ['역삼동', '삼성동', '청담동', '대치동']
-    
-    current_time = timezone.now()
-    
-    for district in districts:
-        for neighborhood in neighborhoods:
-            for hour in range(24):
-                forecast_time = current_time + timedelta(hours=hour)
-                
-                weather = WeatherData.objects.create(
-                    district=district,
-                    neighborhood=neighborhood,
-                    temperature=random.uniform(15.0, 25.0),
-                    humidity=random.uniform(40.0, 80.0),
-                    wind_speed=random.uniform(0.0, 10.0),
-                    precipitation=random.uniform(0.0, 5.0),
-                    precipitation_type=random.choice([None, 'rain', 'snow']),
-                    walking_score=random.randint(0, 100),
-                    forecast_time=forecast_time
-                )
-                
-                WalkingCondition.objects.create(
-                    weather_data=weather,
-                    recommendation="날씨가 좋아 산책하기 좋은 날입니다." if weather.walking_score > 50 
-                    else "실내 활동을 추천드립니다.",
-                    warning="비가 예상되니 우산을 챙기세요." if weather.precipitation > 0 else None
-                )
 
 def create_notifications_and_messages():
     users = User.objects.all()
@@ -225,8 +195,6 @@ def clean_existing_data():
     Like.objects.all().delete()
     Comment.objects.all().delete()
     Post.objects.all().delete()
-    WalkingCondition.objects.all().delete()
-    WeatherData.objects.all().delete()
     Pet.objects.all().delete()
     UserProfile.objects.all().delete()
     User.objects.all().delete()
@@ -244,9 +212,6 @@ def create_all_dummy_data():
         
         print("Creating posts...")
         create_posts()
-        
-        print("Creating weather data...")
-        create_weather_data()
         
         print("Creating notifications and messages...")
         create_notifications_and_messages()

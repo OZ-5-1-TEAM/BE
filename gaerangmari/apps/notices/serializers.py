@@ -99,6 +99,17 @@ class NoticeCreateSerializer(serializers.ModelSerializer):
             "end_date",
         )
 
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(
+                _("시작일은 종료일보다 늦을 수 없습니다.")
+            )
+
+        return data
+
     def validate_images(self, value):
         if len(value) > 5:
             raise serializers.ValidationError(_("이미지는 최대 5개까지만 등록할 수 있습니다."))
@@ -158,6 +169,15 @@ class NoticeUpdateSerializer(serializers.ModelSerializer):
             "remove_image_ids",
             "remove_file_ids",
         )
+
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(_("시작일은 종료일보다 늦을 수 없습니다."))
+
+        return data
 
     def update(self, instance, validated_data):
         images = validated_data.pop("images", [])

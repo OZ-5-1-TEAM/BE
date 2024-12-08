@@ -13,12 +13,12 @@ from .serializers import (
     PetListSerializer,
     PetSerializer,
     PetUpdateSerializer,
+    PetImageUploadSerializer,
 )
 
 
 class PetListCreateView(generics.ListCreateAPIView):
     """반려동물 목록 조회 및 생성"""
-
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -32,7 +32,6 @@ class PetListCreateView(generics.ListCreateAPIView):
 
 class PetDetailView(generics.RetrieveUpdateDestroyAPIView):
     """반려동물 상세 조회, 수정, 삭제"""
-
     permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = "pet_id"
 
@@ -46,8 +45,44 @@ class PetDetailView(generics.RetrieveUpdateDestroyAPIView):
             return PetUpdateSerializer
         return PetSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PetImageUploadView(generics.UpdateAPIView):
+    """반려동물 이미지 업로드"""
+    permission_classes = [IsAuthenticated, IsOwner]
+    serializer_class = PetImageUploadSerializer
+    lookup_url_kwarg = "pet_id"
+
+    def get_queryset(self):
+        return Pet.objects.filter(is_deleted=False)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(status=status.HTTP_200_OK)
+
+
+class PetSoftDeleteView(generics.DestroyAPIView):
+    """반려동물 소프트 삭제"""
+    permission_classes = [IsAuthenticated, IsOwner]
+    lookup_url_kwarg = "pet_id"
+
+    def get_queryset(self):
+        return Pet.objects.filter(is_deleted=False)
+
     def perform_destroy(self, instance):
-        """소프트 삭제 구현"""
         instance.is_deleted = True
         instance.deleted_at = timezone.now()
         instance.save()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)

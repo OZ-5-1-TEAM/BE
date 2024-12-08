@@ -26,6 +26,7 @@ class CommentSerializer(serializers.ModelSerializer):
     author_nickname = serializers.CharField(source="author.nickname", read_only=True)
     author_profile = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
+    level = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Comment
@@ -39,8 +40,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "parent",
             "replies",
             "created_at",
+            "level"
         )
-        read_only_fields = ("author", "post")
+        read_only_fields = ("author", "post", "level")
 
     def get_author_profile(self, obj):
         return {

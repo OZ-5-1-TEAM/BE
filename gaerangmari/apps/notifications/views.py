@@ -42,7 +42,6 @@ class NotificationListView(generics.ListAPIView):
 
 class NotificationMarkReadView(APIView):
     """알림 읽음 처리"""
-
     permission_classes = [IsAuthenticated]
 
     def post(self, request, notification_id=None):
@@ -60,7 +59,8 @@ class NotificationMarkReadView(APIView):
                 is_read=True, read_at=timezone.now()
             )
 
-        return Response({"message": "알림이 읽음 처리되었습니다."})
+        return Response({"message": "알림이 읽음 처리되었습니다."}, status=status.HTTP_200_OK)
+
 
 
 class NotificationBulkDeleteView(APIView):
@@ -87,10 +87,9 @@ class NotificationBulkDeleteView(APIView):
 
 class NotificationSettingsUpdateView(APIView):
     """알림 설정 업데이트"""
-
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request):
+    def put(self, request):  # patch -> put으로 변경
         serializer = NotificationSettingsUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -99,7 +98,7 @@ class NotificationSettingsUpdateView(APIView):
             setattr(user, field, value)
         user.save()
 
-        return Response(serializer.validated_data)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class WebPushSubscriptionView(APIView):
@@ -107,11 +106,11 @@ class WebPushSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        try:
-            """구독 정보 등록/업데이트"""
-            serializer = WebPushSubscriptionSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        """구독 정보 등록/업데이트"""
+        serializer = WebPushSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # 400 에러는 자동으로 발생
 
+        try:
             subscription, created = WebPushSubscription.objects.get_or_create(
                 user=request.user,
                 endpoint=serializer.validated_data['endpoint'],
@@ -131,17 +130,22 @@ class WebPushSubscriptionView(APIView):
             return Response({
                 "message": "웹 푸시 구독이 등록되었습니다.",
                 "subscription_id": subscription.id
-            })
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-            return Exception(message=str(e)) 
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
         """구독 취소"""
         endpoint = request.data.get('endpoint')
-        if endpoint:
-            WebPushSubscription.objects.filter(
-                endpoint=endpoint,
-                user=request.user
-            ).update(is_active=False)
+        if not endpoint:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+            
+        subscription = generics.get_object_or_404(
+            WebPushSubscription,
+            endpoint=endpoint,
+            user=request.user
+        )
+        subscription.is_active = False
+        subscription.save()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
