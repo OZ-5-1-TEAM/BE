@@ -34,6 +34,14 @@ class CustomPagination(PageNumberPagination):
 class PostListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return PostCreateSerializer
+        return PostListSerializer
+
+    def get_queryset(self):
+        return Post.objects.filter(is_deleted=False).order_by('-created_at')
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
