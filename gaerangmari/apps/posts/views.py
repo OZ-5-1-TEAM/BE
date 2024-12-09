@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from common.pagination import StandardResultsSetPagination
 from common.response import CustomResponse
+from rest_framework.exceptions import NotFound
 from .models import Comment, Like, Post
 from .serializers import (
     CommentCreateSerializer,
@@ -19,29 +20,34 @@ from .serializers import (
 )
 
 
+from rest_framework.pagination import PageNumberPagination
+
+class CustomPagination(PageNumberPagination):
+    page_size = 20
+    
+    def paginate_queryset(self, queryset, request, view=None):
+        try:
+            return super().paginate_queryset(queryset, request, view)
+        except NotFound:
+            return []
+        
 class PostListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    pagination_class = StandardResultsSetPagination
+    pagination_class = CustomPagination
     
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return PostCreateSerializer
-        return PostListSerializer
-
-    def get_queryset(self):
-        queryset = Post.objects.filter(is_deleted=False).order_by('-created_at')
-        return queryset
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return CustomResponse.error(message="잘못된 요청입니다.", status=status.HTTP_400_BAD_REQUEST)
-        self.perform_create(serializer)
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = self.get_serializer(queryset, many=True)
         return CustomResponse.success(
             data=serializer.data,
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_200_OK
         )
-
 
 class LikedPostListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
