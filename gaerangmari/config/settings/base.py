@@ -35,6 +35,8 @@ DJANGO_ENV = os.getenv("DJANGO_ENV", "local")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+TOMORROW_API_KEY = os.getenv("TOMORROW_API_KEY")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
 
