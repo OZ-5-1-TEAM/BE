@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
@@ -29,7 +28,22 @@ class UserCreateSerializer(serializers.ModelSerializer):
         
     def validate(self, data):
         # 비밀번호 확인 검증
-        if data["password"] != data["confirm_password"]:
+        password = data["password"]
+        
+        # 8자리 이상 검증
+        if len(password) < 8:
+            raise serializers.ValidationError({
+                "password": "비밀번호는 최소 8자리여야 합니다."
+            })
+            
+        # 특수문자 포함 검증
+        if not any(char in "!@#$%^&*(),.?\":{}|<>" for char in password):
+            raise serializers.ValidationError({
+                "password": "비밀번호에 특수문자가 포함되어야 합니다."
+            })
+        
+        # 비밀번호 일치 검증
+        if password != data["confirm_password"]:
             raise serializers.ValidationError({
                 "password": "비밀번호가 일치하지 않습니다."
             })
@@ -38,13 +52,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if len(data["nickname"]) < 2 or len(data["nickname"]) > 10:
             raise serializers.ValidationError({
                 "nickname": "닉네임은 2~10자 사이여야 합니다."
-            })
-
-        try:
-            validate_password(data["password"])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                "password": e.messages
             })
 
         return data
@@ -157,16 +164,24 @@ class PasswordChangeSerializer(serializers.Serializer):
     new_password_confirm = serializers.CharField(required=True)
 
     def validate(self, data):
-        if data['new_password'] != data['new_password_confirm']:
+        password = data['new_password']
+        
+        # 8자리 이상 검증
+        if len(password) < 8:
+            raise serializers.ValidationError({
+                "new_password": "비밀번호는 최소 8자리여야 합니다."
+            })
+            
+        # 특수문자 포함 검증
+        if not any(char in "!@#$%^&*(),.?\":{}|<>" for char in password):
+            raise serializers.ValidationError({
+                "new_password": "비밀번호에 특수문자가 포함되어야 합니다."
+            })
+        
+        # 비밀번호 일치 검증
+        if password != data['new_password_confirm']:
             raise serializers.ValidationError({
                 "new_password": "새 비밀번호가 일치하지 않습니다."
-            })
-
-        try:
-            validate_password(data['new_password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                "new_password": e.messages
             })
 
         return data

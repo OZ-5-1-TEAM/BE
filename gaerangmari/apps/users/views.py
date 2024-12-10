@@ -31,6 +31,68 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+
+class UserCreateView(generics.CreateAPIView):
+    """회원가입 뷰"""
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            print("Request Data:", request.data)
+            
+            serializer = self.get_serializer(data=request.data)
+            
+            try:
+                serializer.is_valid(raise_exception=True)
+            except serializers.ValidationError as validation_error:
+                print("Validation Error Details:", validation_error.detail)
+                return Response({
+                    "error": "VALIDATION_ERROR",
+                    "message": "입력값 검증 실패",
+                    "details": validation_error.detail
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                user = serializer.save()
+                # 바로 활성화 상태로 설정
+                user.is_active = True
+                user.save()
+                print(f"User created successfully: {user.email}")
+                
+                return Response({
+                    "message": "회원가입이 완료되었습니다.",
+                    "user_id": user.id
+                }, status=status.HTTP_201_CREATED)
+                
+            except Exception as user_create_error:
+                print("User Creation Error:", str(user_create_error))
+                return Response({
+                    "error": "USER_CREATE_ERROR",
+                    "message": "사용자 생성 중 오류가 발생했습니다."
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            print("Unexpected Error:", str(e))
+            error_message = str(e).lower()
+            
+            if "unique constraint" in error_message:
+                print("Duplicate Value Error:", error_message)
+                return Response({
+                    "error": "DUPLICATE_VALUE",
+                    "message": "이메일 또는 닉네임이 이미 사용 중입니다.",
+                    "details": error_message
+                }, status=status.HTTP_409_CONFLICT)
+                
+            return Response({
+                "error": "UNKNOWN_ERROR",
+                "message": "회원가입 중 예기치 않은 오류가 발생했습니다.",
+                "details": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+''' 메일발송 생략
 class UserCreateView(generics.CreateAPIView):
     """회원가입 뷰"""
     queryset = User.objects.all()
@@ -82,6 +144,7 @@ class UserCreateView(generics.CreateAPIView):
             return Response({
                 "error": "회원가입 중 오류가 발생했습니다."
             }, status=status.HTTP_400_BAD_REQUEST)
+    '''
 
 class UserDetailView(generics.RetrieveUpdateAPIView):
     """사용자 정보 조회/수정 뷰"""

@@ -84,6 +84,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "category",
             "district",
             "neighborhood",
+            "dog_size",
             "thumbnail",
             "likes_count",
             "comments_count",
