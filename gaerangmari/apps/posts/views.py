@@ -30,6 +30,16 @@ class CustomPagination(PageNumberPagination):
             return super().paginate_queryset(queryset, request, view)
         except NotFound:
             return []
+    
+    def get_paginated_response(self, data):
+        return Response({
+            'links': {
+                'next': self.get_next_link(),
+                'previous': self.get_previous_link()
+            },
+            'count': self.page.paginator.count if hasattr(self, 'page') else 0,
+            'results': data
+        })
         
 class PostListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -41,16 +51,19 @@ class PostListCreateView(generics.ListCreateAPIView):
         return PostListSerializer
 
     def get_queryset(self):
-        return Post.objects.filter(is_deleted=False).order_by('-created_at')
-    
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
+        queryset = Post.objects.filter(is_deleted=False)
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset.order_by('-created_at')
         
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-            
+        
         serializer = self.get_serializer(queryset, many=True)
         return CustomResponse.success(
             data=serializer.data,
