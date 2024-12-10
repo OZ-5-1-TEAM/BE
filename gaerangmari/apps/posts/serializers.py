@@ -105,12 +105,12 @@ class PostListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        category_mapping = {
+        dog_size_mapping = {
             'small': '소형견',
             'medium': '중형견',
             'large': '대형견'
         }
-        data['category'] = category_mapping.get(data['category'], data['category'])
+        data['dog_size'] = dog_size_mapping.get(data['dog_size'], data['dog_size'])
         return data
 
 class PostDetailSerializer(serializers.ModelSerializer):
@@ -163,6 +163,16 @@ class PostDetailSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        dog_size_mapping = {
+            'small': '소형견',
+            'medium': '중형견',
+            'large': '대형견'
+        }
+        data['dog_size'] = dog_size_mapping.get(data['dog_size'], data['dog_size'])
+        return data
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
