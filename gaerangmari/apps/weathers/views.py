@@ -22,18 +22,38 @@ class CurrentWeatherView(APIView):
             response = requests.get(url, params=params)
             data = response.json()
             
-            weather_data = {
-                'temperature': data['data']['values']['temperature'],
-                'humidity': data['data']['values']['humidity'],
-                'wind_speed': data['data']['values']['windSpeed'],
-                'precipitation_probability': data['data']['values']['precipitationProbability'],
-                'weather_code': data['data']['values']['weatherCode']
-            }
+            # API 응답 구조 확인을 위한 로깅
+            print("API Response:", data)
+            
+            if not response.ok:
+                return Response(
+                    {"error": f"API Error: {data.get('message', 'Unknown error')}"},
+                    status=response.status_code
+                )
+            
+            try:
+                weather_data = {
+                    'temperature': data['data']['values']['temperature'],
+                    'humidity': data['data']['values']['humidity'],
+                    'wind_speed': data['data']['values']['windSpeed'],
+                    'precipitation_probability': data['data']['values']['precipitationProbability'],
+                    'weather_code': data['data']['values']['weatherCode']
+                }
+            except KeyError as ke:
+                return Response(
+                    {"error": f"Missing expected data in API response: {str(ke)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
             
             return Response(weather_data)
             
+        except requests.RequestException as e:
+            return Response(
+                {"error": f"Request failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         except Exception as e:
             return Response(
-                {"error": str(e)},
+                {"error": f"Unexpected error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
