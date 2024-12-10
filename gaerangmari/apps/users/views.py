@@ -414,6 +414,20 @@ class EmailCheckView(APIView):
     """이메일 중복 확인 뷰"""
     permission_classes = [AllowAny]
 
+    def get(self, request):
+        email = request.query_params.get('email')
+        
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({
+                "error": "VALIDATION_ERROR",
+                "message": "유효한 이메일 형식이 아닙니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        is_available = not User.objects.filter(email=email).exists()
+        return Response({"available": is_available})
+
     def post(self, request):
         email = request.data.get('email')
         
@@ -427,11 +441,31 @@ class EmailCheckView(APIView):
 
         is_available = not User.objects.filter(email=email).exists()
         return Response({"available": is_available})
+    
+
 
 
 class NicknameCheckView(APIView):
     """닉네임 중복 확인 뷰"""
     permission_classes = [AllowAny]
+
+    def get(self, request):
+        nickname = request.query_params.get('nickname')
+        
+        if not nickname:
+            return Response({
+                "error": "VALIDATION_ERROR",
+                "message": "닉네임을 입력해주세요."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not (2 <= len(nickname) <= 10):
+            return Response({
+                "error": "VALIDATION_ERROR",
+                "message": "닉네임은 2~10자 사이여야 합니다."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        is_available = not User.objects.filter(nickname=nickname).exists()
+        return Response({"available": is_available})
 
     def post(self, request):
         nickname = request.data.get('nickname')
