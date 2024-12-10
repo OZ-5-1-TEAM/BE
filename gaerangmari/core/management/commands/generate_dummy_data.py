@@ -24,10 +24,10 @@ class Command(BaseCommand):
 
     def __init__(self):
         super().__init__()
-        # 현재 파일의 디렉토리 경로를 기준으로 더미 파일 경로 설정
         current_dir = Path(__file__).resolve().parent
-        self.dummy_file_path = current_dir / 'dummyfile' / 'dummy_file.pdf'
-        self.dummy_image_path = current_dir / 'dummyfile' / 'dummy_image.jpg'
+        self.dummy_dir = current_dir / 'dummyfile'
+        self.dummy_file_path = self.dummy_dir / 'dummy_file.pdf'
+        self.dummy_image_path = self.dummy_dir / 'dummy_image.jpg'
 
     def handle(self, *args, **kwargs):
         # 더미 파일 존재 확인
@@ -68,12 +68,37 @@ class Command(BaseCommand):
         CustomerInquiry.objects.all().delete()
         self.stdout.write('Cleaned up existing data')
 
+    def get_dummy_pet_image(self):
+        return File(open(self.dummy_image_path, 'rb'))
+
+    def get_dummy_additional_image(self):
+        additional_images = [
+            self.dummy_dir / 'additional1.jpg',
+            self.dummy_dir / 'additional2.jpg'
+        ]
+        return File(open(random.choice(additional_images), 'rb'))
+
+    def get_dummy_profile_image(self):
+        profile_images = [
+            self.dummy_dir / 'profile1.png',
+            self.dummy_dir / 'profile2.png'
+        ]
+        return File(open(random.choice(profile_images), 'rb'))
+
+    def get_dummy_post_image(self):
+        post_image = self.dummy_dir / 'post.png'
+        return File(open(post_image, 'rb'))
+
+    def get_dummy_notice_image(self):
+        notice_image = self.dummy_dir / 'notice.jpg'
+        return File(open(notice_image, 'rb'))
+
     def get_dummy_image(self):
         return File(open(self.dummy_image_path, 'rb'))
 
     def get_dummy_file(self):
         return File(open(self.dummy_file_path, 'rb'))
-
+    
     def create_users(self, count):
         users = []
         # 관리자 계정 생성
@@ -85,21 +110,23 @@ class Command(BaseCommand):
         )
         
         # 관리자 프로필 이미지 설정
-        with self.get_dummy_image() as img:
-            admin_user.profile_image.save('admin_profile.jpg', img, save=True)
+        with self.get_dummy_profile_image() as img:
+            admin_user.profile_image.save('admin_profile.png', img, save=True)
         users.append(admin_user)
 
         # 일반 사용자 생성
-        districts = ['강남구', '서초구', '송파구', '강동구', '강서구']
-        neighborhoods = ['역삼동', '삼성동', '서초동', '잠실동', '천호동']
+        districts = ['강남구']
+        neighborhoods = ['신사동', '논현동', '역삼동']
 
         for i in range(count-1):
             username = f'user{i+1}'
             email = f'user{i+1}@example.com'
-            nickname = fake.name()[:10]
+            nickname = f'{fake.name()[:5]}{i+1}'
             district = random.choice(districts)
             neighborhood = random.choice(neighborhoods)
 
+            self.stdout.write(f"Creating user with nickname: {nickname}")
+            
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -112,8 +139,8 @@ class Command(BaseCommand):
             
             # 50% 확률로 프로필 이미지 추가
             if random.random() < 0.5:
-                with self.get_dummy_image() as img:
-                    user.profile_image.save(f'profile_{i+1}.jpg', img, save=True)
+                with self.get_dummy_profile_image() as img:
+                    user.profile_image.save(f'profile_{i+1}.png', img, save=True)
             users.append(user)
 
         return users
@@ -137,9 +164,15 @@ class Command(BaseCommand):
                     gender=random.choice(['M', 'F'])
                 )
                 
-                # 반려견 이미지 추가
-                with self.get_dummy_image() as img:
+                # 메인 이미지 추가
+                with self.get_dummy_pet_image() as img:
                     pet.image.save(f'pet_{user.id}_{j+1}.jpg', img, save=True)
+                
+                # 50% 확률로 추가 이미지 추가
+                if random.random() < 0.5:
+                    with self.get_dummy_additional_image() as img:
+                        pet.additional_image.save(f'pet_{user.id}_{j+1}_additional.jpg', img, save=True)
+                
                 pets.append(pet)
 
         return pets
@@ -147,8 +180,8 @@ class Command(BaseCommand):
     def create_posts(self, users, count):
         posts = []
         categories = ['notice', 'dog', 'mate']
-        districts = ['강남구', '서초구', '송파구', '강동구', '강서구']
-        neighborhoods = ['역삼동', '삼성동', '서초동', '잠실동', '천호동']
+        districts = ['강남구']
+        neighborhoods = ['신사동', '논현동', '역삼동']
         dog_sizes = ['small', 'medium', 'large']
 
         for i in range(count):
@@ -176,11 +209,11 @@ class Command(BaseCommand):
                     post=post,
                     order=j
                 )
-                with self.get_dummy_image() as img:
-                    post_image.image.save(f'post_{post.id}_image_{j+1}.jpg', img, save=True)
+                with self.get_dummy_post_image() as img:
+                    post_image.image.save(f'post_{post.id}_image_{j+1}.png', img, save=True)
 
         return posts
-    
+        
     def create_notices(self, users):
         admin_users = [user for user in users if user.is_staff]
         if not admin_users:
@@ -202,7 +235,7 @@ class Command(BaseCommand):
                     notice=notice,
                     order=j
                 )
-                with self.get_dummy_image() as img:
+                with self.get_dummy_notice_image() as img:
                     notice_image.image.save(f'notice_{notice.id}_image_{j+1}.jpg', img, save=True)
 
             # 공지사항 첨부파일 추가 (0-2개)
@@ -308,8 +341,8 @@ class Command(BaseCommand):
             )
 
     def create_customer_inquiries(self):
-        districts = ['강남구', '서초구', '송파구', '강동구', '강서구']
-        neighborhoods = ['역삼동', '삼성동', '서초동', '잠실동', '천호동']
+        districts = ['강남구']
+        neighborhoods = ['신사동', '논현동', '역삼동']
         
         for _ in range(30):  # 30개의 고객문의 생성
             CustomerInquiry.objects.create(

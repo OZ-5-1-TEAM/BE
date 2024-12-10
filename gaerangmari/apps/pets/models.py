@@ -26,6 +26,7 @@ class Pet(models.Model):
         blank=True
     )
     image = models.ImageField(upload_to='pets/', null=True, blank=True)
+    additional_image = models.ImageField(upload_to='pets/', null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
