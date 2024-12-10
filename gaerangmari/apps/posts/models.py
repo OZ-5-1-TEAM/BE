@@ -18,9 +18,8 @@ class Post(SoftDeleteModel):
         max_length=20,
         choices=[
             ("notice", "공지사항"),
-            ("walk", "산책"),
-            ("care", "돌봄"),
-            ("community", "자유게시판"),
+            ("dog", "강아지 커뮤니티"),
+            ("mate", "산책메이트 커뮤니티"),
         ],
     )
     district = models.CharField(max_length=20)  # 구
