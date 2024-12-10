@@ -21,4 +21,6 @@ urlpatterns = [
     
     # POST /api/v1/posts/{post_id}/report - 게시글 신고
     path("<int:post_id>/report/", views.ReportView.as_view(), name="post-report"),
+
+    path('posts/<int:post_id>/comments/<int:comment_id>/', views.CommentDeleteView.as_view(), name='comment-delete'),
 ]

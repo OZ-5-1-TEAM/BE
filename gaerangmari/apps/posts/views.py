@@ -184,3 +184,36 @@ class ReportView(generics.CreateAPIView):
         return CustomResponse.success(
             status=status.HTTP_201_CREATED
         )
+    
+class CommentDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Comment.objects.filter(is_deleted=False)
+    
+    def destroy(self, request, *args, **kwargs):
+        try:
+            comment = self.get_queryset().get(
+                id=self.kwargs["comment_id"],
+                post_id=self.kwargs["post_id"]
+            )
+            
+            # 댓글 작성자나 게시글 작성자만 삭제 가능
+            if request.user != comment.author and request.user != comment.post.author:
+                return CustomResponse.error(
+                    message="삭제 권한이 없습니다.",
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            comment.soft_delete()
+            
+            return CustomResponse.success(
+                message="삭제된 댓글입니다.",
+                status=status.HTTP_200_OK
+            )
+            
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="댓글을 찾을 수 없습니다.",
+                status=status.HTTP_404_NOT_FOUND
+            )

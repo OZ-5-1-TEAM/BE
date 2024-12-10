@@ -103,6 +103,15 @@ class PostListSerializer(serializers.ModelSerializer):
             return first_image.image.url
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        category_mapping = {
+            'small': '소형견',
+            'medium': '중형견',
+            'large': '대형견'
+        }
+        data['category'] = category_mapping.get(data['category'], data['category'])
+        return data
 
 class PostDetailSerializer(serializers.ModelSerializer):
     """게시글 상세 조회용 시리얼라이저"""
