@@ -62,7 +62,11 @@ class PostListCreateView(generics.ListCreateAPIView):
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            paginated_response = self.get_paginated_response(serializer.data)
+            return CustomResponse.success(
+                data=paginated_response.data,  # 이미 구조화된 응답 데이터를 직접 사용
+                status=status.HTTP_200_OK
+            )
         
         serializer = self.get_serializer(queryset, many=True)
         return CustomResponse.success(
